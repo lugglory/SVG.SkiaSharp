@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
 using System.Threading.Tasks;
+using SkiaSharp;
 using Svg;
 
 namespace SvgConsole
@@ -69,7 +70,15 @@ namespace SvgConsole
 
             using (var bitmap = svgDocument.Draw())
             {
-                bitmap?.Save(outputPath);
+                if (bitmap != null)
+                {
+                    using (var image = SKImage.FromBitmap(bitmap))
+                    using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                    using (var stream = File.OpenWrite(outputPath))
+                    {
+                        data.SaveTo(stream);
+                    }
+                }
             }
         }
 

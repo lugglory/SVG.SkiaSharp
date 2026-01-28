@@ -1,6 +1,5 @@
-﻿using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using System;
+using SkiaSharp;
 using Moq;
 using NUnit.Framework;
 
@@ -17,14 +16,16 @@ namespace Svg.UnitTests
             var visualElement = visualElementMock.Object;
             visualElement.ShapeRendering = SvgShapeRendering.Auto;
 
-            var g = Graphics.FromHwnd(IntPtr.Zero);
-            var renderer = SvgRenderer.FromGraphics(g);
+            using (var bitmap = new SKBitmap(1, 1))
+            using (var canvas = new SKCanvas(bitmap))
+            using (var renderer = SvgRenderer.FromCanvas(canvas))
+            {
+                renderer.SmoothingMode = true;
 
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+                visualElement.RenderElement(renderer);
 
-            visualElement.RenderElement(renderer);
-
-            Assert.That(g.SmoothingMode, Is.EqualTo(SmoothingMode.AntiAlias));
+                Assert.That(renderer.SmoothingMode, Is.True);
+            }
         }
 
         [Test]
@@ -36,13 +37,13 @@ namespace Svg.UnitTests
             var visualElement = visualElementMock.Object;
             visualElement.ShapeRendering = SvgShapeRendering.Auto;
 
-            var renderer = Mock.Of<ISvgRenderer>(_ => _.Transform == new Matrix());
+            var renderer = Mock.Of<ISvgRenderer>(_ => _.Transform == SKMatrix.CreateIdentity());
 
-            renderer.SmoothingMode = SmoothingMode.HighQuality;
+            renderer.SmoothingMode = true;
 
             visualElement.RenderElement(renderer);
 
-            Assert.That(renderer.SmoothingMode, Is.EqualTo(SmoothingMode.HighQuality));
+            Assert.That(renderer.SmoothingMode, Is.True);
         }
     }
 }

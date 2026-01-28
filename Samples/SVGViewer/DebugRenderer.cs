@@ -1,19 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Collections.Generic;
+using SkiaSharp;
 using Svg;
 
 namespace SVGViewer
 {
-#if NET5_0_OR_GREATER
-    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-#endif
     class DebugRenderer : ISvgRenderer
     {
         private readonly Stack<ISvgBoundable> _boundables = new Stack<ISvgBoundable>();
 
-        private Region _clip = new Region();
-        private Matrix _transform = new Matrix();
+        private SKRegion _clip = new SKRegion();
+        private SKMatrix _transform = SKMatrix.CreateIdentity();
 
         public void SetBoundable(ISvgBoundable boundable)
         {
@@ -33,92 +29,77 @@ namespace SVGViewer
             get { return 96; }
         }
 
-        public void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit)
-        {
-        }
-        public void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit, float opacity)
+        public void DrawImage(SKImage image, SKRect destRect, SKRect srcRect, SKPaint paint = null)
         {
         }
 
-        public void DrawImageUnscaled(Image image, Point location)
+        public void DrawImageUnscaled(SKImage image, SKPoint location)
         {
         }
-        public void DrawPath(Pen pen, GraphicsPath path)
+        public void DrawPath(SKPath path, SKPaint paint)
         {
-            var newPath = (GraphicsPath)path.Clone();
-            newPath.Transform(_transform);
+            using (var newPath = new SKPath(path))
+            {
+                newPath.Transform(_transform);
+            }
         }
-        public void FillPath(Brush brush, GraphicsPath path)
+        public void FillPath(SKPath path, SKPaint paint)
         {
-            var newPath = (GraphicsPath)path.Clone();
-            newPath.Transform(_transform);
+            using (var newPath = new SKPath(path))
+            {
+                newPath.Transform(_transform);
+            }
         }
-        public Region GetClip()
+        public SKRegion GetClip()
         {
             return _clip;
         }
-        public void RotateTransform(float fAngle, MatrixOrder order = MatrixOrder.Append)
+        public void RotateTransform(float fAngle)
         {
-            _transform.Rotate(fAngle, order);
+            _transform = _transform.PostConcat(SKMatrix.CreateRotationDegrees(fAngle));
         }
-        public void ScaleTransform(float sx, float sy, MatrixOrder order = MatrixOrder.Append)
+        public void ScaleTransform(float sx, float sy)
         {
-            _transform.Scale(sx, sy, order);
+            _transform = _transform.PostConcat(SKMatrix.CreateScale(sx, sy));
         }
-        public void SetClip(Region region, CombineMode combineMode = CombineMode.Replace)
+        public void SetClip(SKRegion region)
         {
-            switch (combineMode)
-            {
-                case CombineMode.Intersect:
-                    _clip.Intersect(region);
-                    break;
-                case CombineMode.Complement:
-                    _clip.Complement(region);
-                    break;
-                case CombineMode.Exclude:
-                    _clip.Exclude(region);
-                    break;
-                case CombineMode.Union:
-                    _clip.Union(region);
-                    break;
-                case CombineMode.Xor:
-                    _clip.Xor(region);
-                    break;
-                default:
-                    if (_clip != null)
-                        _clip.Dispose();
-                    _clip = region;
-                    break;
-            }
+            _clip = region;
         }
-        public void TranslateTransform(float dx, float dy, MatrixOrder order = MatrixOrder.Append)
+        public void SetClip(SKPath path)
         {
-            _transform.Translate(dx, dy, order);
+        }
+        public void SetClip(SKRect rect)
+        {
+        }
+        public void TranslateTransform(float dx, float dy)
+        {
+            _transform = _transform.PostConcat(SKMatrix.CreateTranslation(dx, dy));
         }
 
-        public SmoothingMode SmoothingMode
+        public bool SmoothingMode
         {
-            get { return SmoothingMode.Default; }
+            get { return true; }
             set { /* Do Nothing */ }
         }
 
-        public Matrix Transform
+        public SKMatrix Transform
         {
-            get { return _transform?.Clone(); }
-            set
-            {
-                if (_transform != null)
-                    _transform.Dispose();
-                _transform = value?.Clone();
-            }
+            get { return _transform; }
+            set { _transform = value; }
+        }
+
+        public void Save()
+        {
+        }
+
+        public void Restore()
+        {
         }
 
         public void Dispose()
         {
-            if (_clip != null)
-                _clip.Dispose();
-            if (_transform != null)
-                _transform.Dispose();
+            _clip?.Dispose();
         }
     }
 }

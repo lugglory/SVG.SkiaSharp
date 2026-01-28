@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 using Svg;
 
 namespace SVGBuilder
@@ -33,8 +35,8 @@ svgDoc.Children.Add(group);
 group.Children.Add(new SvgCircle
 {
     Radius = 100,
-    Fill = new SvgColourServer(Color.Red),
-    Stroke = new SvgColourServer(Color.Black),
+    Fill = new SvgColourServer(SKColors.Red),
+    Stroke = new SvgColourServer(SKColors.Black),
     StrokeWidth = 2
 });
 ";
@@ -68,7 +70,10 @@ group.Children.Add(new SvgCircle
                         svgDoc.Write(stream);
                         textBox1.Text = Encoding.UTF8.GetString(stream.GetBuffer());
                     }
-                    pictureBox1.Image = svgDoc.Draw();
+                    using (var bitmap = svgDoc.Draw())
+                    {
+                        pictureBox1.Image = bitmap?.ToBitmap();
+                    }
                     button1.Enabled = true;
                 }
             }
@@ -81,7 +86,7 @@ group.Children.Add(new SvgCircle
         private SvgDocument CreateDocument(string userCode)
         {
             var source = $@"using System;
-using System.Drawing;
+using SkiaSharp;
 using System.IO;
 using Svg;
 
@@ -123,6 +128,7 @@ class Program
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Xml.ReaderWriter.dll")),
 #endif
                 MetadataReference.CreateFromFile(Path.Combine(sourcePath, "Svg.dll")),
+                MetadataReference.CreateFromFile(typeof(SKBitmap).Assembly.Location),
             };
 
             var compilationOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)

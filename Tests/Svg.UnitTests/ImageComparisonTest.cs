@@ -1,9 +1,7 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
+using SkiaSharp;
 using System.IO;
 using System.Linq;
 
@@ -84,7 +82,7 @@ namespace Svg.UnitTests
             Assert.IsNotNull(svgDoc);
             bool useFixedSize = !baseName.StartsWith("__");
 
-            using (var pngImage = Image.FromFile(pngPath))
+            using (var pngImage = SKBitmap.Decode(pngPath))
             {
                 using (var svgImage = LoadSvgImage(svgDoc, useFixedSize))
                 {
@@ -141,7 +139,7 @@ namespace Svg.UnitTests
                 {
                     var svgDoc = LoadSvgDocument(svgPath);
                     bool useFixedSize = !baseName.StartsWith("__");
-                    using (var pngImage = Image.FromFile(pngPath))
+                    using (var pngImage = SKBitmap.Decode(pngPath))
                     using (var svgImage = LoadSvgImage(svgDoc, useFixedSize))
                     {
                         var difference = svgImage.PercentageDifference(pngImage);
@@ -154,15 +152,18 @@ namespace Svg.UnitTests
         /// <summary>
         /// Load the SVG image the same way as in the SVGW3CTestRunner.
         /// </summary>
-        private static Bitmap LoadSvgImage(SvgDocument svgDoc, bool usedFixedSize)
+        private static SKBitmap LoadSvgImage(SvgDocument svgDoc, bool usedFixedSize)
         {
-            Bitmap svgImage = null;
+            SKBitmap svgImage = null;
             try
             {
                 if (usedFixedSize)
                 {
-                    svgImage = new Bitmap(480, 360);
-                    svgDoc.Draw(svgImage);
+                    svgImage = new SKBitmap(480, 360);
+                    using (var canvas = new SKCanvas(svgImage))
+                    {
+                        svgDoc.Draw(canvas);
+                    }
                 }
                 else
                 {

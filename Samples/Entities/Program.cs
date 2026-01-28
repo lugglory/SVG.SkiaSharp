@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Svg;
 using System.IO;
+using SkiaSharp;
 
 namespace Entities
 {
@@ -17,7 +18,19 @@ namespace Entities
                     {"entity2", "fill:yellow" }
                 });
 
-            sampleDoc.Draw().Save(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"../../../sample.png"));
+            var outputPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"../../../sample.png");
+            using (var bitmap = sampleDoc.Draw())
+            {
+                if (bitmap != null)
+                {
+                    using (var image = SKImage.FromBitmap(bitmap))
+                    using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                    using (var stream = File.OpenWrite(outputPath))
+                    {
+                        data.SaveTo(stream);
+                    }
+                }
+            }
         }
     }
 }

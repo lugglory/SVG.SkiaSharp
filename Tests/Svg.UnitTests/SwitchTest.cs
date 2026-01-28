@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using SkiaSharp;
 using System.Globalization;
 using NUnit.Framework;
 
@@ -27,10 +27,12 @@ namespace Svg.UnitTests
                 CultureInfo.CurrentCulture = new CultureInfo(languageCode, false);
                 var testDocument = OpenSvg(GetXMLDocFromResource(GetFullResourceString(SwitchTestSvg)));
                 var pngName = GetFullResourceString($"Issue1176_Switch.{expectedColor}.png");
-                var expectedPngStream = GetResourceStream(pngName);
-                var expectedImage = new Bitmap(expectedPngStream);
-                var actualImage = new Bitmap(DrawSvg(testDocument));
-                Assert.That(ImagesAreEqual(expectedImage, actualImage, out _));
+                using (var expectedPngStream = GetResourceStream(pngName))
+                using (var expectedImage = SKBitmap.Decode(expectedPngStream))
+                using (var actualImage = DrawSvg(testDocument))
+                {
+                    Assert.That(ImagesAreEqual(expectedImage, actualImage));
+                }
             }
             finally
             {

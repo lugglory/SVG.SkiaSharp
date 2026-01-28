@@ -2,7 +2,7 @@
 using Svg.DataTypes;
 using System;
 using System.Diagnostics;
-using System.Drawing;
+using SkiaSharp;
 using System.IO;
 
 namespace Svg.UnitTests
@@ -49,7 +49,7 @@ namespace Svg.UnitTests
             var arrowPath = new SvgPath()
             {
                 ID = "pathMarkerArrow",
-                Fill = new SvgColourServer(Color.Black),
+                Fill = new SvgColourServer(SKColors.Black),
                 PathData = SvgPathBuilder.Parse(@"M0,0 L4,2 L0,4 L1,2 z".AsSpan())
             };
 
@@ -74,7 +74,7 @@ namespace Svg.UnitTests
                 StartY = 15,
                 EndX = 35,
                 EndY = 35,
-                Stroke = new SvgColourServer(Color.Black),
+                Stroke = new SvgColourServer(SKColors.Black),
                 StrokeWidth = 3,
                 MarkerEnd = new Uri(string.Format("url(#{0})", arrowMarker.ID), UriKind.Relative)
             };
@@ -82,18 +82,24 @@ namespace Svg.UnitTests
             groupElement.Children.Add(line);
 
             var svgXml = document.GetXML();
-            var img = document.Draw();
+            using (var img = document.Draw())
+            {
+                var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                File.WriteAllText(file + ".svg", svgXml);
+                using (var image = SKImage.FromBitmap(img))
+                using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+                using (var stream = File.OpenWrite(file + ".png"))
+                {
+                    data.SaveTo(stream);
+                }
+                Debug.WriteLine(string.Format("Svg saved to '{0}'", file));
 
-            var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            File.WriteAllText(file + ".svg", svgXml);
-            img.Save(file + ".png");
-            Debug.WriteLine(string.Format("Svg saved to '{0}'", file));
-
-            // Remove
-            var svg = new FileInfo(file + ".svg");
-            if (svg.Exists) svg.Delete();
-            var png = new FileInfo(file + ".png");
-            if (png.Exists) png.Delete();
+                // Remove
+                var svg = new FileInfo(file + ".svg");
+                if (svg.Exists) svg.Delete();
+                var png = new FileInfo(file + ".png");
+                if (png.Exists) png.Delete();
+            }
         }
     }
 }

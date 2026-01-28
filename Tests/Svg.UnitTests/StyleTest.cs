@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using SkiaSharp;
 using System.IO;
 using System.Xml;
 using NUnit.Framework;
@@ -16,7 +16,7 @@ namespace Svg.UnitTests
             {
                 X = { 0f },
                 Y = { 20f },
-                Fill = new SvgColourServer(Color.Blue),
+                Fill = new SvgColourServer(SKColors.Blue),
                 CustomAttributes = { { "style", "test0:test0" } }
             };
             text.AddStyle("test1", "test1", 0);
@@ -59,7 +59,7 @@ namespace Svg.UnitTests
             document.FlushStyles(true);
 
             Assert.IsInstanceOf(typeof(SvgColourServer), rectangle.Fill);
-            Assert.AreEqual(((SvgColourServer)rectangle.Fill).Colour, Color.Blue);
+            Assert.AreEqual(((SvgColourServer)rectangle.Fill).Colour, SKColors.Blue);
         }
     }
 }

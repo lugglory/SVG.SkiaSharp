@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using SkiaSharp;
 
 using Svg;
 using Svg.Tests.Common;
@@ -471,36 +472,48 @@ namespace SvgW3CTestRunner
             var pngBasePath = Path.GetFullPath(isIssue ? _pngIssuesBasePath : _pngW3CBasePath);
             var svgBasePath = Path.GetFullPath(isIssue ? _svgIssuesBasePath : _svgW3CBasePath);
 
-            Image pngImage = null;
-            Image svgImage = null;
             try
             {
-                pngImage = Image.FromFile(Path.Combine(pngBasePath, Path.ChangeExtension(fileName, "png")));
-
-                var doc = new SvgDocument();
-                doc = SvgDocument.Open(Path.Combine(svgBasePath, fileName));
-                if (isIssue)
+                using (var pngImage = SKBitmap.Decode(Path.Combine(pngBasePath, Path.ChangeExtension(fileName, "png"))))
                 {
-                    svgImage = doc.Draw();
-                    // Check for a large difference in image size, if not nearly equal recreate it
-                    if (Math.Abs(svgImage.Width - pngImage.Width) > 10
-                        || Math.Abs(svgImage.Height - pngImage.Height) > 10)
+                    var doc = SvgDocument.Open(Path.Combine(svgBasePath, fileName));
+                    SKBitmap svgImage;
+                    if (isIssue)
                     {
-                        svgImage.Dispose();
-                        svgImage = new Bitmap(pngImage.Width, pngImage.Height);
-                        doc.Draw((Bitmap)svgImage);
+                        var svgImageSkia = doc.Draw();
+                        // Check for a large difference in image size, if not nearly equal recreate it
+                        if (Math.Abs(svgImageSkia.Width - pngImage.Width) > 10
+                            || Math.Abs(svgImageSkia.Height - pngImage.Height) > 10)
+                        {
+                            svgImageSkia.Dispose();
+                            svgImage = new SKBitmap(pngImage.Width, pngImage.Height);
+                            using (var canvas = new SKCanvas(svgImage))
+                            {
+                                doc.Draw(canvas);
+                            }
+                        }
+                        else
+                        {
+                            svgImage = svgImageSkia;
+                        }
+                    }
+                    else
+                    {
+                        svgImage = new SKBitmap(480, 360);
+                        using (var canvas = new SKCanvas(svgImage))
+                        {
+                            doc.Draw(canvas);
+                        }
+                    }
+
+                    using (svgImage)
+                    {
+                        var difference = svgImage.PercentageDifference(pngImage);
+                        var percentage = Math.Round(difference * 100.0, 2);
+
+                        testItem.Percentage = percentage;
                     }
                 }
-                else
-                {
-                    svgImage = new Bitmap(480, 360);
-                    doc.Draw((Bitmap)svgImage);
-                }
-
-                var difference = svgImage.PercentageDifference(pngImage);
-                var percentage = Math.Round(difference * 100.0, 2);
-
-                testItem.Percentage = percentage;
             }
             catch (Exception ex)
             {
@@ -514,11 +527,6 @@ namespace SvgW3CTestRunner
                 richTextBox.AppendText($"Exception: {fileName}" + Environment.NewLine);
                 richTextBox.AppendText(ex.ToString());
                 richTextBox.AppendText(Environment.NewLine);
-            }
-            finally
-            {
-                pngImage?.Dispose();
-                svgImage?.Dispose();
             }
         }
     }

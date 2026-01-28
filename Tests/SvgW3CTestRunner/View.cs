@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Svg;
 using Svg.Tests.Common;
@@ -203,13 +205,21 @@ namespace SvgW3CTestRunner
                 doc = SvgDocument.Open(Path.Combine(_svgW3CBasePath, fileName));
                 if (fileName.StartsWith(IssuesPrefix))
                 {
-                    picSvg.Image = doc.Draw();
+                    using (var bitmap = doc.Draw())
+                    {
+                        picSvg.Image = bitmap?.ToBitmap();
+                    }
                 }
                 else
                 {
-                    var img = new Bitmap(480, 360);
-                    doc.Draw(img);
-                    picSvg.Image = img;
+                    using (var bitmap = new SKBitmap(480, 360))
+                    {
+                        using (var canvas = new SKCanvas(bitmap))
+                        {
+                            doc.Draw(canvas);
+                        }
+                        picSvg.Image = bitmap.ToBitmap();
+                    }
                 }
 
                 this.boxConsoleLog.AppendText("WC3 TEST " + fileName + "\n");
@@ -237,13 +247,21 @@ namespace SvgW3CTestRunner
 
                     if (fileName.StartsWith(IssuesPrefix))
                     {
-                        picSaveLoad.Image = doc.Draw();
+                        using (var bitmap = doc.Draw())
+                        {
+                            picSaveLoad.Image = bitmap?.ToBitmap();
+                        }
                     }
                     else
                     {
-                        var img = new Bitmap(480, 360);
-                        doc.Draw(img);
-                        picSaveLoad.Image = img;
+                        using (var bitmap = new SKBitmap(480, 360))
+                        {
+                            using (var canvas = new SKCanvas(bitmap))
+                            {
+                                doc.Draw(canvas);
+                            }
+                            picSaveLoad.Image = bitmap.ToBitmap();
+                        }
                     }
                 }
             }
@@ -259,10 +277,14 @@ namespace SvgW3CTestRunner
             try
             {
                 picSVGPNG.Image = BitmapUtils.PixelDiff((Bitmap)picPng.Image, (Bitmap)picSvg.Image);
-                var difference = picSvg.Image.PercentageDifference(picPng.Image);
-                var percentage = Math.Round(difference * 100.0, 2);
-                labelSVGPNG.Text = $"{TitleSVGPNG} - Difference is {percentage}%";
-                labelSVGPNG.ForeColor = percentage > 5.0 ? Color.Crimson : Color.Black;
+                using (var skiaPng = ((Bitmap)picPng.Image).ToSKBitmap())
+                using (var skiaSvg = ((Bitmap)picSvg.Image).ToSKBitmap())
+                {
+                    var difference = skiaSvg.PercentageDifference(skiaPng);
+                    var percentage = Math.Round(difference * 100.0, 2);
+                    labelSVGPNG.Text = $"{TitleSVGPNG} - Difference is {percentage}%";
+                    labelSVGPNG.ForeColor = percentage > 5.0 ? Color.Crimson : Color.Black;
+                }
             }
             catch (Exception ex)
             {
@@ -310,30 +332,51 @@ namespace SvgW3CTestRunner
                 doc = SvgDocument.Open(Path.Combine(_svgIssuesBasePath, fileName));
                 if (fileName.StartsWith(IssuesPrefix))
                 {
-                    var svgImage = doc.Draw();
+                    var svgImageSkia = doc.Draw();
+                    Bitmap svgImage;
                     // Check for a large difference in image size, if not nearly equal recreate it
-                    if (Math.Abs(svgImage.Width - png.Width) > 10 || Math.Abs(svgImage.Height - png.Height) > 10)
+                    if (Math.Abs(svgImageSkia.Width - png.Width) > 10 || Math.Abs(svgImageSkia.Height - png.Height) > 10)
                     {
-                        svgImage.Dispose();
-                        svgImage = new Bitmap(png.Width, png.Height);
-                        doc.Draw(svgImage);
+                        svgImageSkia.Dispose();
+                        using (var bitmap = new SKBitmap(png.Width, png.Height))
+                        {
+                            using (var canvas = new SKCanvas(bitmap))
+                            {
+                                doc.Draw(canvas);
+                            }
+                            svgImage = bitmap.ToBitmap();
+                        }
+                    }
+                    else
+                    {
+                        svgImage = svgImageSkia.ToBitmap();
+                        svgImageSkia.Dispose();
                     }
                     picSvg.Image = svgImage;
                 }
                 else
                 {
-                    var img = new Bitmap(480, 360);
-                    doc.Draw(img);
-                    picSvg.Image = img;
+                    using (var bitmap = new SKBitmap(480, 360))
+                    {
+                        using (var canvas = new SKCanvas(bitmap))
+                        {
+                            doc.Draw(canvas);
+                        }
+                        picSvg.Image = bitmap.ToBitmap();
+                    }
                 }
 
                 this.boxConsoleLog.AppendText("Issues/Pull-Requests TEST " + fileName + "\n");
                 this.boxDescription.Text = GetDescription(doc);
 
-                var difference = picSvg.Image.PercentageDifference(picPng.Image);
-                var percentage = Math.Round(difference * 100.0, 2);
-                labelSVGPNG.Text = $"{TitleSVGPNG} - Difference is {percentage}%";
-                labelSVGPNG.ForeColor = percentage > 5.0 ? Color.Crimson : Color.Black;
+                using (var skiaPng = ((Bitmap)picPng.Image).ToSKBitmap())
+                using (var skiaSvg = ((Bitmap)picSvg.Image).ToSKBitmap())
+                {
+                    var difference = skiaSvg.PercentageDifference(skiaPng);
+                    var percentage = Math.Round(difference * 100.0, 2);
+                    labelSVGPNG.Text = $"{TitleSVGPNG} - Difference is {percentage}%";
+                    labelSVGPNG.ForeColor = percentage > 5.0 ? Color.Crimson : Color.Black;
+                }
             }
             catch (Exception ex)
             {
@@ -358,13 +401,21 @@ namespace SvgW3CTestRunner
 
                     if (fileName.StartsWith(IssuesPrefix))
                     {
-                        picSaveLoad.Image = doc.Draw();
+                        using (var bitmap = doc.Draw())
+                        {
+                            picSaveLoad.Image = bitmap?.ToBitmap();
+                        }
                     }
                     else
                     {
-                        var img = new Bitmap(480, 360);
-                        doc.Draw(img);
-                        picSaveLoad.Image = img;
+                        using (var bitmap = new SKBitmap(480, 360))
+                        {
+                            using (var canvas = new SKCanvas(bitmap))
+                            {
+                                doc.Draw(canvas);
+                            }
+                            picSaveLoad.Image = bitmap.ToBitmap();
+                        }
                     }
                 }
             }

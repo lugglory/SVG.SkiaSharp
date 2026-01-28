@@ -1,6 +1,5 @@
 
 using NUnit.Framework;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Xml;
 

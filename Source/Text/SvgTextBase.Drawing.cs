@@ -1,7 +1,6 @@
 #if !NO_SDC
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using SkiaSharp;
 

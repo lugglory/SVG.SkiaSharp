@@ -35,13 +35,13 @@ namespace Svg.UnitTests
         {
             SvgText text = new SvgText();
             text.Text = "Test invalidate cache";
-            float origX = text.Bounds.X;
-            float origY = text.Bounds.Y;
+            float origX = text.Bounds.Left;
+            float origY = text.Bounds.Top;
             text.X.Add(100);
             text.Y.Add(100);
 
-            Assert.AreNotEqual(origX, text.Bounds.X);
-            Assert.AreNotEqual(origY, text.Bounds.Y);
+            Assert.AreNotEqual(origX, text.Bounds.Left);
+            Assert.AreNotEqual(origY, text.Bounds.Top);
         }
 
         /// <summary>

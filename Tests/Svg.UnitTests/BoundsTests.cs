@@ -95,8 +95,8 @@ namespace Svg.UnitTests
             const float Epsilon = 0.01f;
             var element = GetElement(elementId);
             var elementBounds = element.Bounds;
-            Assert.AreEqual(x, elementBounds.X, Epsilon);
-            Assert.AreEqual(y, elementBounds.Y, Epsilon);
+            Assert.AreEqual(x, elementBounds.Left, Epsilon);
+            Assert.AreEqual(y, elementBounds.Top, Epsilon);
             Assert.AreEqual(width, elementBounds.Width, Epsilon);
             Assert.AreEqual(height, elementBounds.Height, Epsilon);
         }

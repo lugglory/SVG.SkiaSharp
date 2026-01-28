@@ -2,6 +2,7 @@
 using System.IO;
 using System.Windows.Forms;
 using System.Xml;
+using SkiaSharp.Views.Desktop;
 using Svg;
 
 namespace SVGViewer
@@ -78,7 +79,10 @@ namespace SVGViewer
 
             //using (var render = new DebugRenderer())
             //    svgDoc.Draw(render);
-            svgImage.Image = svgDoc.Draw();
+            using (var bitmap = svgDoc.Draw())
+            {
+                svgImage.Image = bitmap?.ToBitmap();
+            }
 
             var baseUri = svgDoc.BaseUri;
             var outputDir = Path.GetDirectoryName(baseUri != null && baseUri.IsFile ? baseUri.LocalPath : Application.ExecutablePath);
