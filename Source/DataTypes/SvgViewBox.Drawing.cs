@@ -1,6 +1,6 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -13,7 +13,7 @@ namespace Svg
 
             if (Equals(Empty))
             {
-                renderer.TranslateTransform(x, y, MatrixOrder.Prepend);
+                renderer.TranslateTransform(x, y);
                 return;
             }
 
@@ -21,7 +21,7 @@ namespace Svg
             var height = frag == null ? Height : frag.Height.ToDeviceValue(renderer, UnitRenderingType.Vertical, frag);
 
             var fScaleX = width / Width;
-            var fScaleY = height / Height; //(MinY < 0 ? -1 : 1) *
+            var fScaleY = height / Height;
             var fMinX = -MinX * fScaleX;
             var fMinY = -MinY * fScaleY;
 
@@ -48,8 +48,6 @@ namespace Svg
 
                 switch (aspectRatio.Align)
                 {
-                    case SvgPreserveAspectRatio.xMinYMin:
-                        break;
                     case SvgPreserveAspectRatio.xMidYMin:
                         fMinX += fMidX - fViewMidX;
                         break;
@@ -78,14 +76,12 @@ namespace Svg
                         fMinX += width - Width * fScaleX;
                         fMinY += height - Height * fScaleY;
                         break;
-                    default:
-                        break;
                 }
             }
 
-            renderer.TranslateTransform(x, y, MatrixOrder.Prepend);
-            renderer.TranslateTransform(fMinX, fMinY, MatrixOrder.Prepend);
-            renderer.ScaleTransform(fScaleX, fScaleY, MatrixOrder.Prepend);
+            renderer.TranslateTransform(x, y);
+            renderer.TranslateTransform(fMinX, fMinY);
+            renderer.ScaleTransform(fScaleX, fScaleY);
         }
     }
 }

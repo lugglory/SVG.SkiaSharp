@@ -1,22 +1,22 @@
 using System;
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public abstract partial class SvgPathSegment
     {
-        protected static readonly PointF NaN = new PointF(float.NaN, float.NaN);
+        protected static readonly SKPoint NaN = new SKPoint(float.NaN, float.NaN);
 
         public bool IsRelative { get; set; }
 
-        public PointF End { get; set; }
+        public SKPoint End { get; set; }
 
         protected SvgPathSegment(bool isRelative)
         {
             IsRelative = isRelative;
         }
 
-        protected SvgPathSegment(bool isRelative, PointF end)
+        protected SvgPathSegment(bool isRelative, SKPoint end)
             : this(isRelative)
         {
             End = end;
@@ -28,6 +28,6 @@ namespace Svg.Pathing
         }
 
         [Obsolete("Will be removed.")]
-        public PointF Start { get; set; }
+        public SKPoint Start { get; set; }
     }
 }

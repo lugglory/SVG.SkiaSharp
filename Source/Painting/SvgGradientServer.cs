@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
+using SkiaSharp;
 using Svg.Transforms;
 
 namespace Svg
@@ -11,29 +11,18 @@ namespace Svg
     /// </summary>
     public abstract partial class SvgGradientServer : SvgPaintServer
     {
-        /// <summary>
-        /// Called by the underlying <see cref="SvgElement"/> when an element has been added to the
-        /// 'Children' collection.
-        /// </summary>
-        /// <param name="child">The <see cref="SvgElement"/> that has been added.</param>
-        /// <param name="index">An <see cref="int"/> representing the index where the element was added to the collection.</param>
         protected override void AddElement(SvgElement child, int index)
         {
-            if (child is SvgGradientStop)
-                Stops.Add((SvgGradientStop)child);
+            if (child is SvgGradientStop stop)
+                Stops.Add(stop);
 
             base.AddElement(child, index);
         }
 
-        /// <summary>
-        /// Called by the underlying <see cref="SvgElement"/> when an element has been removed from the
-        /// 'Children' collection.
-        /// </summary>
-        /// <param name="child">The <see cref="SvgElement"/> that has been removed.</param>
         protected override void RemoveElement(SvgElement child)
         {
-            if (child is SvgGradientStop)
-                Stops.Remove((SvgGradientStop)child);
+            if (child is SvgGradientStop stop)
+                Stops.Remove(stop);
 
             base.RemoveElement(child);
         }
@@ -87,7 +76,7 @@ namespace Svg
         [TypeConverter(typeof(SvgPaintServerFactory))]
         public SvgPaintServer StopColor
         {
-            get { return GetAttribute("stop-color", false, SvgDeferredPaintServer.TryGet<SvgGradientServer>(InheritGradient, null)?.StopColor ?? new SvgColourServer(System.Drawing.Color.Black)); }
+            get { return GetAttribute("stop-color", false, SvgDeferredPaintServer.TryGet<SvgGradientServer>(InheritGradient, null)?.StopColor ?? new SvgColourServer(SKColors.Black)); }
             set { Attributes["stop-color"] = value; }
         }
 
@@ -101,12 +90,12 @@ namespace Svg
             set { Attributes["stop-opacity"] = FixOpacityValue(value); }
         }
 
-        protected static double CalculateDistance(PointF first, PointF second)
+        protected static double CalculateDistance(SKPoint first, SKPoint second)
         {
             return Math.Sqrt(Math.Pow(first.X - second.X, 2) + Math.Pow(first.Y - second.Y, 2));
         }
 
-        protected static float CalculateLength(PointF vector)
+        protected static float CalculateLength(SKPoint vector)
         {
             return (float)Math.Sqrt(Math.Pow(vector.X, 2) + Math.Pow(vector.Y, 2));
         }

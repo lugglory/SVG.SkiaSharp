@@ -1,5 +1,4 @@
-﻿#if !NO_SDC
-using System.Drawing.Drawing2D;
+﻿using SkiaSharp;
 
 namespace Svg.Transforms
 {
@@ -9,16 +8,17 @@ namespace Svg.Transforms
         /// Multiplies all matrices
         /// </summary>
         /// <returns>The result of all transforms</returns>
-        public Matrix GetMatrix()
+        public SKMatrix GetMatrix()
         {
-            var transformMatrix = new Matrix();
+            var transformMatrix = SKMatrix.CreateIdentity();
 
             foreach (var transform in this)
-                using (var matrix = transform.Matrix)
-                    transformMatrix.Multiply(matrix);
+            {
+                var other = transform.Matrix;
+                transformMatrix = transformMatrix.PostConcat(other);
+            }
 
             return transformMatrix;
         }
     }
 }
-#endif

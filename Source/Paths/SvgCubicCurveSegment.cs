@@ -1,20 +1,20 @@
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgCubicCurveSegment : SvgPathSegment
     {
-        public PointF FirstControlPoint { get; set; }
-        public PointF SecondControlPoint { get; set; }
+        public SKPoint FirstControlPoint { get; set; }
+        public SKPoint SecondControlPoint { get; set; }
 
-        public SvgCubicCurveSegment(bool isRelative, PointF firstControlPoint, PointF secondControlPoint, PointF end)
+        public SvgCubicCurveSegment(bool isRelative, SKPoint firstControlPoint, SKPoint secondControlPoint, SKPoint end)
             : base(isRelative, end)
         {
             FirstControlPoint = firstControlPoint;
             SecondControlPoint = secondControlPoint;
         }
 
-        public SvgCubicCurveSegment(bool isRelative, PointF secondControlPoint, PointF end)
+        public SvgCubicCurveSegment(bool isRelative, SKPoint secondControlPoint, SKPoint end)
             : this(isRelative, NaN, secondControlPoint, end)
         {
         }
@@ -28,7 +28,7 @@ namespace Svg.Pathing
         }
 
         [System.Obsolete("Use new constructor.")]
-        public SvgCubicCurveSegment(PointF start, PointF firstControlPoint, PointF secondControlPoint, PointF end)
+        public SvgCubicCurveSegment(SKPoint start, SKPoint firstControlPoint, SKPoint secondControlPoint, SKPoint end)
             : this(false, firstControlPoint, secondControlPoint, end)
         {
             Start = start;

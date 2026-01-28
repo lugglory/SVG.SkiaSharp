@@ -1,18 +1,18 @@
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgQuadraticCurveSegment : SvgPathSegment
     {
-        public PointF ControlPoint { get; set; }
+        public SKPoint ControlPoint { get; set; }
 
-        public SvgQuadraticCurveSegment(bool isRelative, PointF controlPoint, PointF end)
+        public SvgQuadraticCurveSegment(bool isRelative, SKPoint controlPoint, SKPoint end)
             : base(isRelative, end)
         {
             ControlPoint = controlPoint;
         }
 
-        public SvgQuadraticCurveSegment(bool isRelative, PointF end)
+        public SvgQuadraticCurveSegment(bool isRelative, SKPoint end)
             : this(isRelative, NaN, end)
         {
         }
@@ -26,7 +26,7 @@ namespace Svg.Pathing
         }
 
         [System.Obsolete("Use new constructor.")]
-        public SvgQuadraticCurveSegment(PointF start, PointF controlPoint, PointF end)
+        public SvgQuadraticCurveSegment(SKPoint start, SKPoint controlPoint, SKPoint end)
             : this(false, controlPoint, end)
         {
             Start = start;

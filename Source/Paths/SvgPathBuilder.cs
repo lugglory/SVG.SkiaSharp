@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
+using SkiaSharp;
 using Svg.Pathing;
 
 namespace Svg
@@ -11,11 +11,10 @@ namespace Svg
     {
         public static string ToSvgString(this float value)
         {
-            // Use G7 format specifier to be compatible across all target frameworks.
             return value.ToString("G7", CultureInfo.InvariantCulture);
         }
 
-        public static string ToSvgString(this PointF p)
+        public static string ToSvgString(this SKPoint p)
         {
             return $"{p.X.ToSvgString()} {p.Y.ToSvgString()}";
         }
@@ -23,10 +22,6 @@ namespace Svg
 
     public class SvgPathBuilder : TypeConverter
     {
-        /// <summary>
-        /// Parses the specified string into a collection of path segments.
-        /// </summary>
-        /// <param name="path">A <see cref="string"/> containing path data.</param>
         public static SvgPathSegmentList Parse(ReadOnlySpan<char> path)
         {
             var segments = new SvgPathSegmentList();
@@ -40,7 +35,7 @@ namespace Svg
                 for (var i = 0; i < pathLength; ++i)
                 {
                     var currentChar = pathTrimmed[i];
-                    if (char.IsLetter(currentChar) && currentChar != 'e' && currentChar != 'E') // e is used in scientific notiation. but not svg path
+                    if (char.IsLetter(currentChar) && currentChar != 'e' && currentChar != 'E')
                     {
                         var start = commandStart;
                         var length = i - commandStart;
@@ -87,151 +82,123 @@ namespace Svg
         private static void CreatePathSegment(char command, SvgPathSegmentList segments, ref CoordinateParserState state, ReadOnlySpan<char> chars)
         {
             var isRelative = char.IsLower(command);
-            // http://www.w3.org/TR/SVG11/paths.html#PathDataGeneralInformation
 
             switch (command)
             {
-                case 'M': // moveto
-                case 'm': // relative moveto
+                case 'M':
+                case 'm':
                     {
-                        if (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
+                        if (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
                          && CoordinateParser.TryGetFloat(out var coords1, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgMoveToSegment(
-                                    isRelative, new PointF(coords0, coords1)));
+                            segments.Add(new SvgMoveToSegment(isRelative, new SKPoint(coords0, coords1)));
                         }
-                        while (CoordinateParser.TryGetFloat(out coords0, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out coords0, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out coords1, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgLineSegment(
-                                    isRelative, new PointF(coords0, coords1)));
+                            segments.Add(new SvgLineSegment(isRelative, new SKPoint(coords0, coords1)));
                         }
                     }
                     break;
-                case 'A': // elliptical arc
-                case 'a': // relative elliptical arc
+                case 'A':
+                case 'a':
                     {
-                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state)
-                            && CoordinateParser.TryGetBool(out var size, chars, ref state)
-                            && CoordinateParser.TryGetBool(out var sweep, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords3, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state) 
+                            && CoordinateParser.TryGetBool(out var size, chars, ref state) 
+                            && CoordinateParser.TryGetBool(out var sweep, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords3, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out var coords4, chars, ref state))
                         {
-                            // A|a rx ry x-axis-rotation large-arc-flag sweep-flag x y
-                            segments.Add(
-                                new SvgArcSegment(
-                                    coords0,
-                                    coords1,
-                                    coords2,
+                            segments.Add(new SvgArcSegment(coords0, coords1, coords2,
                                     size ? SvgArcSize.Large : SvgArcSize.Small,
                                     sweep ? SvgArcSweep.Positive : SvgArcSweep.Negative,
-                                    isRelative, new PointF(coords3, coords4)));
+                                    isRelative, new SKPoint(coords3, coords4)));
                         }
                     }
                     break;
-                case 'L': // lineto
-                case 'l': // relative lineto
+                case 'L':
+                case 'l':
                     {
-                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out var coords1, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgLineSegment(
-                                    isRelative, new PointF(coords0, coords1)));
+                            segments.Add(new SvgLineSegment(isRelative, new SKPoint(coords0, coords1)));
                         }
                     }
                     break;
-                case 'H': // horizontal lineto
-                case 'h': // relative horizontal lineto
+                case 'H':
+                case 'h':
                     {
                         while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgLineSegment(
-                                    isRelative, new PointF(coords0, float.NaN)));
+                            segments.Add(new SvgLineSegment(isRelative, new SKPoint(coords0, float.NaN)));
                         }
                     }
                     break;
-                case 'V': // vertical lineto
-                case 'v': // relative vertical lineto
+                case 'V':
+                case 'v':
                     {
                         while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgLineSegment(
-                                    isRelative, new PointF(float.NaN, coords0)));
+                            segments.Add(new SvgLineSegment(isRelative, new SKPoint(float.NaN, coords0)));
                         }
                     }
                     break;
-                case 'Q': // quadratic bézier curveto
-                case 'q': // relative quadratic bézier curveto
+                case 'Q':
+                case 'q':
                     {
-                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out var coords3, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgQuadraticCurveSegment(
-                                    isRelative,
-                                    new PointF(coords0, coords1),
-                                    new PointF(coords2, coords3)));
+                            segments.Add(new SvgQuadraticCurveSegment(isRelative,
+                                    new SKPoint(coords0, coords1), new SKPoint(coords2, coords3)));
                         }
                     }
                     break;
-                case 'T': // shorthand/smooth quadratic bézier curveto
-                case 't': // relative shorthand/smooth quadratic bézier curveto
+                case 'T':
+                case 't':
                     {
-                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out var coords1, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgQuadraticCurveSegment(
-                                    isRelative, new PointF(coords0, coords1)));
+                            segments.Add(new SvgQuadraticCurveSegment(isRelative, new SKPoint(coords0, coords1)));
                         }
                     }
                     break;
-                case 'C': // curveto
-                case 'c': // relative curveto
+                case 'C':
+                case 'c':
                     {
-                    while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
-                        && CoordinateParser.TryGetFloat(out var coords1, chars, ref state)
-                        && CoordinateParser.TryGetFloat(out var coords2, chars, ref state)
-                        && CoordinateParser.TryGetFloat(out var coords3, chars, ref state)
-                        && CoordinateParser.TryGetFloat(out var coords4, chars, ref state)
-                        && CoordinateParser.TryGetFloat(out var coords5, chars, ref state))
-                    {
-                        segments.Add(
-                            new SvgCubicCurveSegment(
-                                isRelative,
-                                new PointF(coords0, coords1),
-                                new PointF(coords2, coords3),
-                                new PointF(coords4, coords5)));
-                    }
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords3, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords4, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords5, chars, ref state))
+                        {
+                            segments.Add(new SvgCubicCurveSegment(isRelative,
+                                    new SKPoint(coords0, coords1), new SKPoint(coords2, coords3), new SKPoint(coords4, coords5)));
+                        }
                     }
                     break;
-                case 'S': // shorthand/smooth curveto
-                case 's': // relative shorthand/smooth curveto
+                case 'S':
+                case 's':
                     {
-                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state)
-                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state)
+                        while (CoordinateParser.TryGetFloat(out var coords0, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords1, chars, ref state) 
+                            && CoordinateParser.TryGetFloat(out var coords2, chars, ref state) 
                             && CoordinateParser.TryGetFloat(out var coords3, chars, ref state))
                         {
-                            segments.Add(
-                                new SvgCubicCurveSegment(
-                                    isRelative,
-                                    new PointF(coords0, coords1),
-                                    new PointF(coords2, coords3)));
+                            segments.Add(new SvgCubicCurveSegment(isRelative,
+                                    new SKPoint(coords0, coords1), new SKPoint(coords2, coords3)));
                         }
                     }
                     break;
-                case 'Z': // closepath
-                case 'z': // relative closepath
+                case 'Z':
+                case 'z':
                     {
                         segments.Add(new SvgClosePathSegment(isRelative));
                     }

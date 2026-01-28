@@ -1,45 +1,33 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
+using SkiaSharp;
 
 namespace Svg.FilterEffects
 {
-    public class ImageBuffer : Dictionary<string, Bitmap>, IDisposable
+    public class ImageBuffer : Dictionary<string, SKBitmap>, IDisposable
     {
         private const string BufferKey = "__!!BUFFER";
 
-        private readonly RectangleF _bounds;
+        private readonly SKRect _bounds;
         private readonly ISvgRenderer _renderer;
         private readonly Action<ISvgRenderer> _renderMethod;
         private readonly float _inflate;
 
-        private Matrix _transform;
+        public SKMatrix Transform { get; set; } = SKMatrix.CreateIdentity();
 
-        public Matrix Transform
-        {
-            get { return _transform?.Clone(); }
-            set
-            {
-                _transform?.Dispose();
-                _transform = value?.Clone();
-            }
-        }
-
-        public Bitmap Buffer
+        public SKBitmap Buffer
         {
             get { return this[BufferKey]; }
         }
 
-        public new Bitmap this[string key]
+        public new SKBitmap this[string key]
         {
-            get { return ProcessResult(ProcessKey(key), base[ProcessKey(key)]); }
+            get { return ProcessResult(ProcessKey(key), base.ContainsKey(ProcessKey(key)) ? base[ProcessKey(key)] : null); }
             set { base[string.IsNullOrEmpty(key) ? BufferKey : key] = value; }
         }
 
-        public ImageBuffer(RectangleF bounds, float inflate, ISvgRenderer renderer, Action<ISvgRenderer> renderMethod)
+        public ImageBuffer(SKRect bounds, float inflate, ISvgRenderer renderer, Action<ISvgRenderer> renderMethod)
         {
             _bounds = bounds;
             _inflate = inflate;
@@ -54,7 +42,7 @@ namespace Svg.FilterEffects
             this[SvgFilterPrimitive.StrokePaint] = null;
         }
 
-        public new void Add(string key, Bitmap value)
+        public new void Add(string key, SKBitmap value)
         {
             base.Add(ProcessKey(key), value);
         }
@@ -66,12 +54,14 @@ namespace Svg.FilterEffects
 
         public new void Clear()
         {
-            this.Clear(i => i?.Dispose());
+            foreach (var kvp in this) kvp.Value?.Dispose();
+            base.Clear();
         }
 
         public new bool Remove(string key)
         {
-            switch (ProcessKey(key))
+            var k = ProcessKey(key);
+            switch (k)
             {
                 case SvgFilterPrimitive.SourceGraphic:
                 case SvgFilterPrimitive.SourceAlpha:
@@ -81,11 +71,16 @@ namespace Svg.FilterEffects
                 case SvgFilterPrimitive.StrokePaint:
                     return false;
                 default:
-                    return this.Remove(ProcessKey(key), i => i?.Dispose());
+                    if (base.TryGetValue(k, out var bmp))
+                    {
+                        bmp?.Dispose();
+                        return base.Remove(k);
+                    }
+                    return false;
             }
         }
 
-        public new bool TryGetValue(string key, out Bitmap value)
+        public new bool TryGetValue(string key, out SKBitmap value)
         {
             if (base.TryGetValue(ProcessKey(key), out value))
             {
@@ -95,7 +90,7 @@ namespace Svg.FilterEffects
             return false;
         }
 
-        private Bitmap ProcessResult(string key, Bitmap curr)
+        private SKBitmap ProcessResult(string key, SKBitmap curr)
         {
             if (curr == null)
             {
@@ -107,12 +102,6 @@ namespace Svg.FilterEffects
                     case SvgFilterPrimitive.SourceAlpha:
                         this[key] = CreateSourceAlpha();
                         return this[key];
-                    case SvgFilterPrimitive.BackgroundImage:
-                    case SvgFilterPrimitive.BackgroundAlpha:
-                    case SvgFilterPrimitive.FillPaint:
-                    case SvgFilterPrimitive.StrokePaint:
-                        // Do nothing
-                        return null;
                 }
             }
             return curr;
@@ -120,75 +109,56 @@ namespace Svg.FilterEffects
 
         private string ProcessKey(string key)
         {
-            return string.IsNullOrEmpty(key) ? ContainsKey(BufferKey) ? BufferKey : SvgFilterPrimitive.SourceGraphic : key;
+            return string.IsNullOrEmpty(key) ? (ContainsKey(BufferKey) ? BufferKey : SvgFilterPrimitive.SourceGraphic) : key;
         }
 
-        private Bitmap CreateSourceGraphic()
+        private SKBitmap CreateSourceGraphic()
         {
-            var graphic = new Bitmap((int)(_bounds.Width + 2 * _inflate * _bounds.Width + _bounds.X),
-                                     (int)(_bounds.Height + 2 * _inflate * _bounds.Height + _bounds.Y));
-            using (var renderer = SvgRenderer.FromImage(graphic))
-            using (var transform = new Matrix())
+            int width = (int)Math.Ceiling(_bounds.Width + 2 * _inflate * _bounds.Width + _bounds.Left);
+            int height = (int)Math.Ceiling(_bounds.Height + 2 * _inflate * _bounds.Height + _bounds.Top);
+            
+            var graphic = new SKBitmap(width, height);
+            using (var canvas = new SKCanvas(graphic))
+            using (var renderer = SvgRenderer.FromCanvas(canvas))
             {
                 renderer.SetBoundable(_renderer.GetBoundable());
-                transform.Translate(_bounds.Width * _inflate, _bounds.Height * _inflate);
+                var transform = SKMatrix.CreateTranslation(_bounds.Width * _inflate, _bounds.Height * _inflate);
                 renderer.Transform = transform;
-                //renderer.Transform = _renderer.Transform;
-                //renderer.Clip = _renderer.Clip;
                 _renderMethod.Invoke(renderer);
             }
             return graphic;
         }
 
-        private Bitmap CreateSourceAlpha()
+        private SKBitmap CreateSourceAlpha()
         {
             var source = this[SvgFilterPrimitive.SourceGraphic];
+            if (source == null) return null;
 
-            float[][] colorMatrixElements = {
-                new float[] {0, 0, 0, 0, 0},    // red
-                new float[] {0, 0, 0, 0, 0},    // green
-                new float[] {0, 0, 0, 0, 0},    // blue
-                new float[] {0, 0, 0, 1, 1},    // alpha
-                new float[] {0, 0, 0, 0, 0},    // translations
-            };
-
-            var matrix = new ColorMatrix(colorMatrixElements);
-
-            var sourceAlpha = new Bitmap(source.Width, source.Height);
-
-            using (var graphics = Graphics.FromImage(sourceAlpha))
-            using (var attributes = new ImageAttributes())
+            var sourceAlpha = new SKBitmap(source.Width, source.Height);
+            using (var canvas = new SKCanvas(sourceAlpha))
+            using (var paint = new SKPaint())
             {
-                attributes.SetColorMatrix(matrix);
-                graphics.DrawImage(source, new Rectangle(0, 0, source.Width, source.Height), 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
-                graphics.Save();
+                // Color matrix to extract alpha: 
+                // [ 0 0 0 0 0 ]
+                // [ 0 0 0 0 0 ]
+                // [ 0 0 0 0 0 ]
+                // [ 0 0 0 1 0 ]
+                // [ 0 0 0 0 1 ]
+                float[] matrix = {
+                    0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0,
+                    0, 0, 0, 1, 0
+                };
+                paint.ColorFilter = SKColorFilter.CreateColorMatrix(matrix);
+                canvas.DrawBitmap(source, 0, 0, paint);
             }
-
             return sourceAlpha;
         }
 
         public void Dispose()
         {
             Clear();
-            _transform?.Dispose();
-        }
-    }
-
-    static class DictionaryExtensions
-    {
-        public static void Clear<TKey, TValue>(this Dictionary<TKey, TValue> self, Action<TValue> action)
-        {
-            foreach (var kvp in self)
-                action(kvp.Value);
-            self.Clear();
-        }
-
-        public static bool Remove<TKey, TValue>(this Dictionary<TKey, TValue> self, TKey key, Action<TValue> action)
-        {
-            if (!self.ContainsKey(key))
-                return false;
-            action(self[key]);
-            return self.Remove(key);
         }
     }
 }

@@ -610,9 +610,9 @@ namespace Svg
                             var hasOpacity = writeStyle;
                             if (hasOpacity)
                             {
-                                if (propertyValue is SvgColourServer && ((SvgColourServer)propertyValue).Colour.A < 255)
+                                if (propertyValue is SvgColourServer && ((SvgColourServer)propertyValue).Colour.Alpha < 255)
                                 {
-                                    var opacity = ((SvgColourServer)propertyValue).Colour.A / 255f;
+                                    var opacity = ((SvgColourServer)propertyValue).Colour.Alpha / 255f;
                                     opacityValues.Add(property.AttributeName + "-opacity", opacity);
                                 }
                             }

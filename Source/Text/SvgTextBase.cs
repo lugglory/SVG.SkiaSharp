@@ -223,7 +223,7 @@ namespace Svg
         /// <value>The fill.</value>
         public override SvgPaintServer Fill
         {
-            get { return GetAttribute<SvgPaintServer>("fill", true, new SvgColourServer(System.Drawing.Color.Black)); }
+            get { return GetAttribute<SvgPaintServer>("fill", true, new SvgColourServer(SkiaSharp.SKColors.Black)); }
             set { Attributes["fill"] = value; }
         }
 

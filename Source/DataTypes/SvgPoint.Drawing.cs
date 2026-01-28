@@ -1,11 +1,11 @@
 #if !NO_SDC
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial struct SvgPoint
     {
-        public PointF ToDeviceValue(ISvgRenderer renderer, SvgElement owner)
+        public SKPoint ToDeviceValue(ISvgRenderer renderer, SvgElement owner)
         {
             return SvgUnit.GetDevicePoint(this.X, this.Y, renderer, owner);
         }

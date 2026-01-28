@@ -1,11 +1,11 @@
 #if !NO_SDC
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg.Transforms
 {
     public abstract partial class SvgTransform
     {
-        public abstract Matrix Matrix { get; }
+        public abstract SKMatrix Matrix { get; }
 
         #region Equals implementation
 

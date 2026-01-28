@@ -1,5 +1,5 @@
-﻿#if !NO_SDC
-using System.Drawing;
+#if !NO_SDC
+using SkiaSharp;
 
 namespace Svg.FilterEffects
 {
@@ -8,19 +8,19 @@ namespace Svg.FilterEffects
         public override void Process(ImageBuffer buffer)
         {
             var inputImage = buffer[this.Input];
-            var result = new Bitmap(inputImage.Width, inputImage.Height);
+            if (inputImage == null) return;
 
-            var pts = new PointF[] { new PointF(this.Dx.ToDeviceValue(null, UnitRenderingType.Horizontal, null),
-                this.Dy.ToDeviceValue(null, UnitRenderingType.Vertical, null)) };
-            using (var transform = buffer.Transform)
-                transform.TransformVectors(pts);
+            var dx = this.Dx.ToDeviceValue(null, UnitRenderingType.Horizontal, this);
+            var dy = this.Dy.ToDeviceValue(null, UnitRenderingType.Vertical, this);
+            
+            var vector = buffer.Transform.MapVector(new SKPoint(dx, dy));
 
-            using (var g = Graphics.FromImage(result))
+            var result = new SKBitmap(inputImage.Width, inputImage.Height);
+            using (var canvas = new SKCanvas(result))
+            using (var paint = new SKPaint())
             {
-                g.DrawImage(inputImage, new Rectangle((int)pts[0].X, (int)pts[0].Y,
-                        inputImage.Width, inputImage.Height),
-                    0, 0, inputImage.Width, inputImage.Height, GraphicsUnit.Pixel);
-                g.Flush();
+                paint.ImageFilter = SKImageFilter.CreateOffset(vector.X, vector.Y);
+                canvas.DrawBitmap(inputImage, 0, 0, paint);
             }
             buffer[this.Result] = result;
         }

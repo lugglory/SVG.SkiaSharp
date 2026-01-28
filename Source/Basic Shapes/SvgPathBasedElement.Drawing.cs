@@ -1,26 +1,25 @@
 #if !NO_SDC
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
     public abstract partial class SvgPathBasedElement : SvgVisualElement
     {
-        public override RectangleF Bounds
+        public override SKRect Bounds
         {
             get
             {
                 var path = Path(null);
                 if (path == null)
-                    return new RectangleF();
+                    return SKRect.Empty;
                 if (Transforms == null || Transforms.Count == 0)
-                    return path.GetBounds();
+                    return path.Bounds;
 
-                using (path = (GraphicsPath)path.Clone())
-                using (var matrix = Transforms.GetMatrix())
+                using (var clonedPath = new SKPath(path))
                 {
-                    path.Transform(matrix);
-                    return path.GetBounds();
+                    var matrix = Transforms.GetMatrix();
+                    clonedPath.Transform(matrix);
+                    return clonedPath.Bounds;
                 }
             }
         }

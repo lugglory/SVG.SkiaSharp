@@ -30,7 +30,7 @@ namespace Svg.FilterEffects
         [TypeConverter(typeof(SvgPaintServerFactory))]
         public SvgPaintServer LightingColor
         {
-            get { return GetAttribute<SvgPaintServer>("lighting-color", true, new SvgColourServer(System.Drawing.Color.White)); }
+            get { return GetAttribute<SvgPaintServer>("lighting-color", true, new SvgColourServer(SkiaSharp.SKColors.White)); }
             set { Attributes["lighting-color"] = value; }
         }
 

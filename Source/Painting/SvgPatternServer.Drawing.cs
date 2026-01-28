@@ -1,35 +1,28 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Linq;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgPatternServer : SvgPaintServer, ISvgViewPort
     {
-        private Matrix EffectivePatternTransform
+        private SKMatrix EffectivePatternTransform
         {
             get
             {
-                var transform = new Matrix();
+                var transform = SKMatrix.CreateIdentity();
                 if (PatternTransform != null)
-                    using (var matrix = PatternTransform.GetMatrix())
-                        transform.Multiply(matrix);
+                {
+                    var matrix = PatternTransform.GetMatrix();
+                    transform = transform.PostConcat(matrix);
+                }
 
                 return transform;
             }
         }
 
-        /// <summary>
-        /// Gets a <see cref="Brush"/> representing the current paint server.
-        /// </summary>
-        /// <param name="renderingElement">The owner <see cref="SvgVisualElement"/>.</param>
-        /// <param name="renderer">The renderer object.</param>
-        /// <param name="opacity">The opacity of the brush.</param>
-        /// <param name="forStroke">Not used.</param>
-        public override Brush GetBrush(SvgVisualElement renderingElement, ISvgRenderer renderer, float opacity, bool forStroke = false)
+        public override SKPaint GetPaint(SvgVisualElement renderingElement, ISvgRenderer renderer, float opacity, bool forStroke = false)
         {
             var chain = new List<SvgPatternServer>();
 
@@ -75,7 +68,7 @@ namespace Svg
 
                 if (isPatternObjectBoundingBox)
                 {
-                    var bounds = renderer.GetBoundable().Bounds;    // Boundary without stroke is expect...
+                    var bounds = renderer.GetBoundable().Bounds;
 
                     if (xUnit.Type != SvgUnitType.Percentage)
                         x *= bounds.Width;
@@ -85,40 +78,52 @@ namespace Svg
                         width *= bounds.Width;
                     if (heightUnit.Type != SvgUnitType.Percentage)
                         height *= bounds.Height;
-                    x += bounds.X;
-                    y += bounds.Y;
+                    x += bounds.Left;
+                    y += bounds.Top;
                 }
 
                 if (width <= 0f || height <= 0f)
                     return null;
 
-                var tile = new Bitmap((int)Math.Ceiling(width), (int)Math.Ceiling(height));
-                using (var tileRenderer = SvgRenderer.FromImage(tile))
+                var imgInfo = new SKImageInfo((int)Math.Ceiling(width), (int)Math.Ceiling(height));
+                using (var surface = SKSurface.Create(imgInfo))
                 {
-                    tileRenderer.SetBoundable(renderingElement);
-                    if (viewBox != SvgViewBox.Empty)
+                    if (surface == null) return null;
+                    var canvas = surface.Canvas;
+                    using (var tileRenderer = SvgRenderer.FromCanvas(canvas))
                     {
-                        var bounds = tileRenderer.GetBoundable().Bounds;
-                        tileRenderer.ScaleTransform(width / viewBox.Width, height / viewBox.Height);
-                    }
-                    else if (patternContentUnits == SvgCoordinateUnits.ObjectBoundingBox)
-                    {
-                        var bounds = tileRenderer.GetBoundable().Bounds;
-                        tileRenderer.ScaleTransform(bounds.Width, bounds.Height);
+                        tileRenderer.SetBoundable(renderingElement);
+                        if (viewBox != SvgViewBox.Empty)
+                        {
+                            tileRenderer.ScaleTransform(width / viewBox.Width, height / viewBox.Height);
+                        }
+                        else if (patternContentUnits == SvgCoordinateUnits.ObjectBoundingBox)
+                        {
+                            var bounds = tileRenderer.GetBoundable().Bounds;
+                            tileRenderer.ScaleTransform(bounds.Width, bounds.Height);
+                        }
+
+                        foreach (var child in firstChildren.Children)
+                            child.RenderElement(tileRenderer);
                     }
 
-                    foreach (var child in firstChildren.Children)
-                        child.RenderElement(tileRenderer);
-                }
-
-                using (var transform = EffectivePatternTransform)
-                {
-                    var textureBrush = new TextureBrush(tile, new RectangleF(0f, 0f, width, height))
+                    using (var image = surface.Snapshot())
                     {
-                        Transform = transform
-                    };
-                    textureBrush.TranslateTransform(x, y);
-                    return textureBrush;
+                        var transform = EffectivePatternTransform;
+                        transform = transform.PostConcat(SKMatrix.CreateTranslation(x, y));
+                        
+                        var paint = new SKPaint();
+                        paint.IsAntialias = true;
+                        paint.Shader = image.ToShader(SKShaderTileMode.Repeat, SKShaderTileMode.Repeat, transform);
+                        
+                        // Handle opacity if needed (texture opacity)
+                        if (opacity < 1.0f)
+                        {
+                            paint.Color = paint.Color.WithAlpha((byte)(opacity * 255));
+                        }
+
+                        return paint;
+                    }
                 }
             }
             finally

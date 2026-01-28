@@ -1,20 +1,19 @@
-﻿#if !NO_SDC
+#if !NO_SDC
+using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.Drawing.Text;
+using SkiaSharp;
 
 namespace Svg
 {
     /// <summary>
     /// Convenience wrapper around a graphics object
     /// </summary>
-    public sealed class SvgRenderer : ISvgRenderer, IGraphicsProvider
+    public sealed class SvgRenderer : ISvgRenderer
     {
-        private readonly Graphics _innerGraphics;
+        private readonly SKCanvas _canvas;
         private readonly bool _disposable;
-        private readonly Image _image;
+        private readonly SKBitmap _bitmap; // Keep reference if we created it to dispose it? No, usually caller manages.
+        // But if FromImage creates a canvas from bitmap, the canvas is disposable.
 
         private readonly Stack<ISvgBoundable> _boundables = new Stack<ISvgBoundable>();
 
@@ -33,136 +32,126 @@ namespace Svg
 
         public float DpiY
         {
-            get { return _innerGraphics.DpiY; }
+            get { return 96.0f; } // Skia is pixel-based. Default to 96.
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ISvgRenderer"/> class.
         /// </summary>
-        private SvgRenderer(Graphics graphics, bool disposable = true)
+        private SvgRenderer(SKCanvas canvas, bool disposable = true)
         {
-            _innerGraphics = graphics;
+            _canvas = canvas;
             _disposable = disposable;
         }
-        private SvgRenderer(Graphics graphics, Image image)
-            : this(graphics)
+        
+        // Internal usage mostly
+        public SKCanvas Canvas => _canvas;
+
+        public void DrawImage(SKImage image, SKRect destRect, SKRect srcRect, SKPaint paint = null)
         {
-            _image = image;
+            // Skia DrawImage takes dest rect. Src rect logic needs DrawImageRect.
+            // DrawImageRect(SKImage image, SKRect src, SKRect dest, SKPaint paint)
+            _canvas.DrawImage(image, srcRect, destRect, paint);
         }
 
-        public void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit)
+        public void DrawImageUnscaled(SKImage image, SKPoint location)
         {
-            _innerGraphics.DrawImage(image, destRect, srcRect, graphicsUnit);
+            _canvas.DrawImage(image, location);
         }
-        public void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit, float opacity)
+
+        public void DrawPath(SKPath path, SKPaint paint)
         {
-            using (var attributes = new ImageAttributes())
-            {
-                var matrix = new ColorMatrix { Matrix33 = opacity };
-                attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-                var points = new[]
-                {
-                    destRect.Location,
-                    new PointF(destRect.X + destRect.Width, destRect.Y),
-                    new PointF(destRect.X, destRect.Y + destRect.Height)
-                };
-                _innerGraphics.DrawImage(image, points, srcRect, graphicsUnit, attributes);
+            // Ensure paint is set to Stroke
+            var oldStyle = paint.Style;
+            paint.Style = SKPaintStyle.Stroke;
+            _canvas.DrawPath(path, paint);
+            paint.Style = oldStyle; // Restore? SvgElement usually manages separate paints, but let's be safe.
+        }
+
+        public void FillPath(SKPath path, SKPaint paint)
+        {
+            var oldStyle = paint.Style;
+            paint.Style = SKPaintStyle.Fill;
+            _canvas.DrawPath(path, paint);
+            paint.Style = oldStyle;
+        }
+
+        public SKRegion GetClip()
+        {
+            var region = new SKRegion();
+            region.SetRect(SKRectI.Round(_canvas.LocalClipBounds));
+            return region;
+        }
+
+        public void RotateTransform(float fAngle)
+        {
+            _canvas.RotateDegrees(fAngle);
+        }
+
+        public void ScaleTransform(float sx, float sy)
+        {
+            _canvas.Scale(sx, sy);
+        }
+
+        public void SetClip(SKRegion region)
+        {
+            _canvas.ClipRegion(region);
+        }
+
+        public void SetClip(SKPath path)
+        {
+            _canvas.ClipPath(path);
+        }
+
+        public void SetClip(SKRect rect)
+        {
+            _canvas.ClipRect(rect);
+        }
+
+        public void TranslateTransform(float dx, float dy)
+        {
+            _canvas.Translate(dx, dy);
+        }
+
+        public bool SmoothingMode
+        {
+            get { return true; } // Always assume high quality in Skia or manage via Paint
+            set { 
+                // No-op. Antialiasing is per-paint in Skia.
             }
         }
 
-        public void DrawImageUnscaled(Image image, Point location)
+        public SKMatrix Transform
         {
-            _innerGraphics.DrawImageUnscaled(image, location);
-        }
-        public void DrawPath(Pen pen, GraphicsPath path)
-        {
-            _innerGraphics.DrawPath(pen, path);
-        }
-        public void FillPath(Brush brush, GraphicsPath path)
-        {
-            _innerGraphics.FillPath(brush, path);
-        }
-        public Region GetClip()
-        {
-            return _innerGraphics.Clip;
-        }
-        public void RotateTransform(float fAngle, MatrixOrder order = MatrixOrder.Append)
-        {
-            _innerGraphics.RotateTransform(fAngle, order);
-        }
-        public void ScaleTransform(float sx, float sy, MatrixOrder order = MatrixOrder.Append)
-        {
-            _innerGraphics.ScaleTransform(sx, sy, order);
-        }
-        public void SetClip(Region region, CombineMode combineMode = CombineMode.Replace)
-        {
-            _innerGraphics.SetClip(region, combineMode);
-        }
-        public void TranslateTransform(float dx, float dy, MatrixOrder order = MatrixOrder.Append)
-        {
-            _innerGraphics.TranslateTransform(dx, dy, order);
+            get { return _canvas.TotalMatrix; }
+            set { _canvas.SetMatrix(value); }
         }
 
-        public SmoothingMode SmoothingMode
+        public void Save()
         {
-            get { return _innerGraphics.SmoothingMode; }
-            set { _innerGraphics.SmoothingMode = value; }
+            _canvas.Save();
         }
 
-        public Matrix Transform
+        public void Restore()
         {
-            get { return _innerGraphics.Transform; }
-            set { _innerGraphics.Transform = value; }
+            _canvas.Restore();
         }
 
         public void Dispose()
         {
             if (_disposable)
-                _innerGraphics.Dispose();
-            if (_image != null)
-                _image.Dispose();
+                _canvas.Dispose();
         }
 
-        Graphics IGraphicsProvider.GetGraphics()
+        public static ISvgRenderer FromImage(SKBitmap bitmap)
         {
-            return _innerGraphics;
+            var canvas = new SKCanvas(bitmap);
+            return new SvgRenderer(canvas, true);
         }
-
-        private static Graphics CreateGraphics(Image image)
+        
+        public static ISvgRenderer FromCanvas(SKCanvas canvas)
         {
-            var g = Graphics.FromImage(image);
-            g.PixelOffsetMode = PixelOffsetMode.Half;
-            g.CompositingQuality = CompositingQuality.HighQuality;
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
-            g.TextContrast = 1;
-            g.InterpolationMode = InterpolationMode.Default;
-            return g;
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="ISvgRenderer"/> from the specified <see cref="Image"/>.
-        /// </summary>
-        /// <param name="image"><see cref="Image"/> from which to create the new <see cref="ISvgRenderer"/>.</param>
-        public static ISvgRenderer FromImage(Image image)
-        {
-            var g = CreateGraphics(image);
-            return new SvgRenderer(g);
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="ISvgRenderer"/> from the specified <see cref="Graphics"/>.
-        /// </summary>
-        /// <param name="graphics">The <see cref="Graphics"/> to create the renderer from.</param>
-        public static ISvgRenderer FromGraphics(Graphics graphics)
-        {
-            return new SvgRenderer(graphics, false);
-        }
-
-        public static ISvgRenderer FromNull()
-        {
-            var img = new Bitmap(1, 1);
-            var g = CreateGraphics(img);
-            return new SvgRenderer(g, img);
+            return new SvgRenderer(canvas, false);
         }
     }
 }

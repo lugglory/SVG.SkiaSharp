@@ -1,14 +1,14 @@
-﻿#if !NO_SDC
-using System.Drawing;
+#if !NO_SDC
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgDeferredPaintServer : SvgPaintServer
     {
-        public override Brush GetBrush(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
+        public override SKPaint GetPaint(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
         {
             EnsureServer(styleOwner);
-            return _concreteServer?.GetBrush(styleOwner, renderer, opacity, forStroke) ?? _fallbackServer?.GetBrush(styleOwner, renderer, opacity, forStroke) ?? NotSet?.GetBrush(styleOwner, renderer, opacity, forStroke);
+            return _concreteServer?.GetPaint(styleOwner, renderer, opacity, forStroke) ?? _fallbackServer?.GetPaint(styleOwner, renderer, opacity, forStroke) ?? NotSet?.GetPaint(styleOwner, renderer, opacity, forStroke);
         }
     }
 }

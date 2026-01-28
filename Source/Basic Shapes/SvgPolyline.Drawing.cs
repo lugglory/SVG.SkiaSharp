@@ -1,43 +1,41 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 using System.Diagnostics;
 
 namespace Svg
 {
     public partial class SvgPolyline : SvgPolygon
     {
-        private GraphicsPath _path;
+        private SKPath _path;
 
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
             if (_path == null || this.IsPathDirty)
             {
-                _path = new GraphicsPath();
+                _path = new SKPath();
 
                 try
                 {
                     for (int i = 0; (i + 1) < Points.Count; i += 2)
                     {
-                        PointF endPoint = new PointF(Points[i].ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
+                        var endPoint = new SKPoint(Points[i].ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
                             Points[i + 1].ToDeviceValue(renderer, UnitRenderingType.Vertical, this));
 
                         if (renderer == null)
                         {
                             var radius = base.StrokeWidth / 2;
-                            _path.AddEllipse(endPoint.X - radius, endPoint.Y - radius, 2 * radius, 2 * radius);
+                            _path.AddCircle(endPoint.X, endPoint.Y, radius);
                             continue;
                         }
 
-                        // TODO: Remove unrequired first line
-                        if (_path.PointCount == 0)
+                        if (i == 0)
                         {
-                            _path.AddLine(endPoint, endPoint);
+                            _path.MoveTo(endPoint);
                         }
                         else
                         {
-                            _path.AddLine(_path.GetLastPoint(), endPoint);
+                            _path.LineTo(endPoint);
                         }
                     }
                 }

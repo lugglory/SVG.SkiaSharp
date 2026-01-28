@@ -1,10 +1,10 @@
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgLineSegment : SvgPathSegment
     {
-        public SvgLineSegment(bool isRelative, PointF end)
+        public SvgLineSegment(bool isRelative, SKPoint end)
             : base(isRelative, end)
         {
         }
@@ -20,7 +20,7 @@ namespace Svg.Pathing
         }
 
         [System.Obsolete("Use new constructor.")]
-        public SvgLineSegment(PointF start, PointF end)
+        public SvgLineSegment(SKPoint start, SKPoint end)
             : this(false, end)
         {
             Start = start;

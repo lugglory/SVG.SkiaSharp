@@ -1,16 +1,14 @@
 #if !NO_SDC
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgForeignObject : SvgVisualElement
     {
         /// <summary>
-        /// Gets the <see cref="GraphicsPath"/> for this element.
+        /// Gets the <see cref="SKPath"/> for this element.
         /// </summary>
-        /// <value></value>
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
             return GetPaths(this, renderer);
         }
@@ -18,52 +16,32 @@ namespace Svg
         /// <summary>
         /// Gets the bounds of the element.
         /// </summary>
-        /// <value>The bounds.</value>
-        public override RectangleF Bounds
+        public override SKRect Bounds
         {
             get
             {
-                var r = new RectangleF();
+                var r = SKRect.Empty;
                 foreach (var c in this.Children)
                 {
-                    if (c is SvgVisualElement)
+                    if (c is SvgVisualElement visualElement)
                     {
-                        // First it should check if rectangle is empty or it will return the wrong Bounds.
-                        // This is because when the Rectangle is Empty, the Union method adds as if the first values where X=0, Y=0
-                        if (r.IsEmpty)
+                        var childBounds = visualElement.Bounds;
+                        if (!childBounds.IsEmpty)
                         {
-                            r = ((SvgVisualElement)c).Bounds;
-                        }
-                        else
-                        {
-                            var childBounds = ((SvgVisualElement)c).Bounds;
-                            if (!childBounds.IsEmpty)
+                            if (r.IsEmpty)
                             {
-                                r = RectangleF.Union(r, childBounds);
+                                r = childBounds;
+                            }
+                            else
+                            {
+                                r = SKRect.Union(r, childBounds);
                             }
                         }
                     }
                 }
-
                 return TransformedBounds(r);
             }
         }
-
-        ///// <summary>
-        ///// Renders the <see cref="SvgElement"/> and contents to the specified <see cref="Graphics"/> object.
-        ///// </summary>
-        ///// <param name="renderer">The <see cref="Graphics"/> object to render to.</param>
-        //protected override void Render(SvgRenderer renderer)
-        //{
-        //    if (!Visible || !Displayable)
-        //        return;
-
-        //    this.PushTransforms(renderer);
-        //    this.SetClip(renderer);
-        //    base.RenderChildren(renderer);
-        //    this.ResetClip(renderer);
-        //    this.PopTransforms(renderer);
-        //}
     }
 }
 #endif

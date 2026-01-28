@@ -1,13 +1,10 @@
 using System;
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgArcSegment : SvgPathSegment
     {
-        private const double RadiansPerDegree = Math.PI / 180.0;
-        private const double DoublePI = Math.PI * 2;
-
         public float RadiusX { get; set; }
 
         public float RadiusY { get; set; }
@@ -18,7 +15,7 @@ namespace Svg.Pathing
 
         public SvgArcSize Size { get; set; }
 
-        public SvgArcSegment(float radiusX, float radiusY, float angle, SvgArcSize size, SvgArcSweep sweep, bool isRelative, PointF end)
+        public SvgArcSegment(float radiusX, float radiusY, float angle, SvgArcSize size, SvgArcSweep sweep, bool isRelative, SKPoint end)
             : base(isRelative, end)
         {
             RadiusX = Math.Abs(radiusX);
@@ -36,7 +33,7 @@ namespace Svg.Pathing
         }
 
         [Obsolete("Use new constructor.")]
-        public SvgArcSegment(PointF start, float radiusX, float radiusY, float angle, SvgArcSize size, SvgArcSweep sweep, PointF end)
+        public SvgArcSegment(SKPoint start, float radiusX, float radiusY, float angle, SvgArcSize size, SvgArcSweep sweep, SKPoint end)
             : this(radiusX, radiusY, angle, size, sweep, false, end)
         {
             Start = start;

@@ -1,28 +1,30 @@
 ﻿#if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
     public interface ISvgRenderer : IDisposable
     {
         float DpiY { get; }
-        void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit);
-        void DrawImageUnscaled(Image image, Point location);
-        void DrawPath(Pen pen, GraphicsPath path);
-        void FillPath(Brush brush, GraphicsPath path);
+        void DrawImage(SKImage image, SKRect destRect, SKRect srcRect, SKPaint paint = null);
+        void DrawImageUnscaled(SKImage image, SKPoint location);
+        void DrawPath(SKPath path, SKPaint paint);
+        void FillPath(SKPath path, SKPaint paint);
         ISvgBoundable GetBoundable();
-        Region GetClip();
+        SKRegion GetClip();
         ISvgBoundable PopBoundable();
-        void RotateTransform(float fAngle, MatrixOrder order = MatrixOrder.Append);
-        void ScaleTransform(float sx, float sy, MatrixOrder order = MatrixOrder.Append);
+        void RotateTransform(float fAngle);
+        void ScaleTransform(float sx, float sy);
         void SetBoundable(ISvgBoundable boundable);
-        void SetClip(Region region, CombineMode combineMode = CombineMode.Replace);
-        SmoothingMode SmoothingMode { get; set; }
-        Matrix Transform { get; set; }
-        void TranslateTransform(float dx, float dy, MatrixOrder order = MatrixOrder.Append);
-        void DrawImage(Image image, RectangleF destRect, RectangleF srcRect, GraphicsUnit graphicsUnit, float opacity);
+        void SetClip(SKRegion region);
+        void SetClip(SKPath path);
+        void SetClip(SKRect rect);
+        bool SmoothingMode { get; set; }
+        SKMatrix Transform { get; set; }
+        void TranslateTransform(float dx, float dy);
+        void Save();
+        void Restore();
     }
 }
 #endif

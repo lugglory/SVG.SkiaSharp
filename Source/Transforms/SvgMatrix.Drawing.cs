@@ -1,22 +1,19 @@
-﻿#if !NO_SDC
-using System.Drawing.Drawing2D;
+#if !NO_SDC
+using SkiaSharp;
 
 namespace Svg.Transforms
 {
     public sealed partial class SvgMatrix : SvgTransform
     {
-        public override Matrix Matrix
+        public override SKMatrix Matrix
         {
             get
             {
-                return new Matrix(
-                    Points[0],
-                    Points[1],
-                    Points[2],
-                    Points[3],
-                    Points[4],
-                    Points[5]
-                );
+                // SKMatrix(scaleX, skewX, transX, skewY, scaleY, transY, pers0, pers1, pers2)
+                return new SKMatrix(
+                    this.Points[0], this.Points[2], this.Points[4],
+                    this.Points[1], this.Points[3], this.Points[5],
+                    0, 0, 1);
             }
         }
     }

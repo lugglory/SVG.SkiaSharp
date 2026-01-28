@@ -1,36 +1,36 @@
-﻿#if !NO_SDC
-using System.Drawing;
-using System.Drawing.Drawing2D;
+#if !NO_SDC
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgFragment : SvgElement, ISvgBoundable
     {
-        PointF ISvgBoundable.Location
+        SKPoint ISvgBoundable.Location
         {
-            get { return PointF.Empty; }
+            get { return SKPoint.Empty; }
         }
 
-        SizeF ISvgBoundable.Size
+        SKSize ISvgBoundable.Size
         {
             get
             {
-                // Prevent stack overflow due to mutually recursive call.
                 if (Width.Type == SvgUnitType.Percentage || Height.Type == SvgUnitType.Percentage)
-                    return new SizeF();
+                    return SKSize.Empty;
                 return GetDimensions();
             }
         }
 
-        RectangleF ISvgBoundable.Bounds
+        SKRect ISvgBoundable.Bounds
         {
-            get { return new RectangleF(((ISvgBoundable)this).Location, ((ISvgBoundable)this).Size); }
+            get { 
+                var size = ((ISvgBoundable)this).Size;
+                return new SKRect(0, 0, size.Width, size.Height); 
+            }
         }
 
-        /// <summary>
-        /// Applies the required transforms to <see cref="ISvgRenderer"/>.
-        /// </summary>
-        /// <param name="renderer">The <see cref="ISvgRenderer"/> to be transformed.</param>
         protected internal override bool PushTransforms(ISvgRenderer renderer)
         {
             if (!base.PushTransforms(renderer))
@@ -49,14 +49,15 @@ namespace Svg
                     base.Render(renderer);
                     break;
                 default:
-                    var prevClip = renderer.GetClip();
+                    renderer.Save();
                     try
                     {
                         var size = this is SvgDocument ? renderer.GetBoundable().Bounds.Size : GetDimensions(renderer);
-                        var clip = new RectangleF(X.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
+                        var clip = new SKRect(X.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
                             Y.ToDeviceValue(renderer, UnitRenderingType.Vertical, this),
-                            size.Width, size.Height);
-                        renderer.SetClip(new Region(clip), CombineMode.Intersect);
+                            X.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this) + size.Width, 
+                            Y.ToDeviceValue(renderer, UnitRenderingType.Vertical, this) + size.Height);
+                        renderer.SetClip(clip);
                         try
                         {
                             renderer.SetBoundable(new GenericBoundable(clip));
@@ -69,48 +70,38 @@ namespace Svg
                     }
                     finally
                     {
-                        renderer.SetClip(prevClip, CombineMode.Replace);
+                        renderer.Restore();
                     }
                     break;
             }
         }
 
-        /// <summary>
-        /// Gets the <see cref="GraphicsPath"/> for this element.
-        /// </summary>
-        /// <value></value>
-        public GraphicsPath Path
+        public SKPath Path
         {
             get
             {
-                var path = new GraphicsPath();
-
+                var path = new SKPath();
                 AddPaths(this, path);
-
                 return path;
             }
         }
 
-        /// <summary>
-        /// Gets the bounds of the svg element.
-        /// </summary>
-        /// <value>The bounds.</value>
-        public RectangleF Bounds
+        public SKRect Bounds
         {
             get
             {
-                var bounds = new RectangleF();
+                var bounds = SKRect.Empty;
                 foreach (var child in Children)
                 {
-                    RectangleF childBounds = new RectangleF();
-                    if (child is SvgFragment)
+                    SKRect childBounds = SKRect.Empty;
+                    if (child is SvgFragment fragment)
                     {
-                        childBounds = ((SvgFragment)child).Bounds;
-                        childBounds.Offset(((SvgFragment)child).X, ((SvgFragment)child).Y);
+                        childBounds = fragment.Bounds;
+                        childBounds.Offset(fragment.X, fragment.Y);
                     }
-                    else if (child is SvgVisualElement)
+                    else if (child is SvgVisualElement visualElement)
                     {
-                        childBounds = ((SvgVisualElement)child).Bounds;
+                        childBounds = visualElement.Bounds;
                     }
 
                     if (!childBounds.IsEmpty)
@@ -121,7 +112,7 @@ namespace Svg
                         }
                         else
                         {
-                            bounds = RectangleF.Union(bounds, childBounds);
+                            bounds = SKRect.Union(bounds, childBounds);
                         }
                     }
                 }
@@ -130,48 +121,49 @@ namespace Svg
             }
         }
 
-        public SizeF GetDimensions()
+        public SKSize GetDimensions()
         {
             return GetDimensions(null);
         }
 
-        internal SizeF GetDimensions(ISvgRenderer renderer)
+        internal SKSize GetDimensions(ISvgRenderer renderer)
         {
             float w, h;
             var isWidthperc = Width.Type == SvgUnitType.Percentage;
             var isHeightperc = Height.Type == SvgUnitType.Percentage;
 
-            var bounds = new RectangleF();
+            var bounds = SKRect.Empty;
             if (isWidthperc || isHeightperc)
             {
                 if (ViewBox.Width > 0 && ViewBox.Height > 0)
                 {
-                    bounds = new RectangleF(ViewBox.MinX, ViewBox.MinY, ViewBox.Width, ViewBox.Height);
+                    bounds = new SKRect(ViewBox.MinX, ViewBox.MinY, ViewBox.MinX + ViewBox.Width, ViewBox.MinY + ViewBox.Height);
                 }
                 else
                 {
-                    bounds = Bounds; // do just one call to the recursive bounds property
+                    bounds = Bounds;
                 }
             }
 
             if (isWidthperc && this is SvgDocument)
             {
-                w = (bounds.Width + bounds.X) * (Width.Value * 0.01f);
+                w = (bounds.Width + bounds.Left) * (Width.Value * 0.01f);
             }
             else
             {
                 w = Width.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this);
             }
+            
             if (isHeightperc && this is SvgDocument)
             {
-                h = (bounds.Height + bounds.Y) * (Height.Value * 0.01f);
+                h = (bounds.Height + bounds.Top) * (Height.Value * 0.01f);
             }
             else
             {
                 h = Height.ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
             }
 
-            return new SizeF(w, h);
+            return new SKSize(w, h);
         }
     }
 }

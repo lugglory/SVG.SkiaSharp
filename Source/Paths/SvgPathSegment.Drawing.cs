@@ -1,13 +1,12 @@
 #if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public abstract partial class SvgPathSegment
     {
-        protected static PointF Reflect(PointF point, PointF mirror)
+        protected static SKPoint Reflect(SKPoint point, SKPoint mirror)
         {
             var dx = Math.Abs(mirror.X - point.X);
             var dy = Math.Abs(mirror.Y - point.Y);
@@ -15,10 +14,10 @@ namespace Svg.Pathing
             var x = mirror.X + (mirror.X >= point.X ? dx : -dx);
             var y = mirror.Y + (mirror.Y >= point.Y ? dy : -dy);
 
-            return new PointF(x, y);
+            return new SKPoint(x, y);
         }
 
-        protected static PointF ToAbsolute(PointF point, bool isRelative, PointF start)
+        protected static SKPoint ToAbsolute(SKPoint point, bool isRelative, SKPoint start)
         {
             if (float.IsNaN(point.X))
                 point.X = start.X;
@@ -33,10 +32,7 @@ namespace Svg.Pathing
             return point;
         }
 
-        public abstract PointF AddToPath(GraphicsPath graphicsPath, PointF start, SvgPathSegmentList parent);
-
-        [Obsolete("Use new AddToPath.")]
-        public abstract void AddToPath(GraphicsPath graphicsPath);
+        public abstract SKPoint AddToPath(SKPath graphicsPath, SKPoint start, SvgPathSegmentList parent);
     }
 }
 #endif

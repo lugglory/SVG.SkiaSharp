@@ -1,98 +1,76 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
+using SkiaSharp;
 
 namespace Svg
 {
-    public class GdiFontDefn : IFontDefn
+    public class SkiaFontDefn : IFontDefn
     {
-        private readonly Font _font;
+        private readonly SKTypeface _typeface;
+        private readonly float _fontSize;
+        private readonly float _ppi;
 
-        private float _ppi;
+        public float Size => _fontSize;
+        public float SizeInPoints => _fontSize * 72f / _ppi;
 
-        public float Size
+        public SkiaFontDefn(SKTypeface typeface, float fontSize, float ppi)
         {
-            get { return _font.Size; }
-        }
-        public float SizeInPoints
-        {
-            get { return _font.SizeInPoints; }
-        }
-
-        public GdiFontDefn(Font font, float ppi)
-        {
-            _font = font;
+            _typeface = typeface;
+            _fontSize = fontSize;
             _ppi = ppi;
         }
 
-        public void AddStringToPath(ISvgRenderer renderer, GraphicsPath path, string text, PointF location)
+        public void AddStringToPath(ISvgRenderer renderer, SKPath path, string text, SKPoint location)
         {
-            path.AddString(text, _font.FontFamily, (int)_font.Style, _font.Size, location, StringFormat.GenericTypographic);
-        }
-
-        //Baseline calculation to match http://bobpowell.net/formattingtext.aspx
-        public float Ascent(ISvgRenderer renderer)
-        {
-            var ff = _font.FontFamily;
-            var ascent = ff.GetCellAscent(_font.Style);
-            var baselineOffset = _font.SizeInPoints / ff.GetEmHeight(_font.Style) * ascent;
-            return _ppi / 72f * baselineOffset;
-        }
-
-        public IList<RectangleF> MeasureCharacters(ISvgRenderer renderer, string text)
-        {
-            var g = GetGraphics(renderer);
-            var regions = new List<RectangleF>();
-            using (var format = new StringFormat(StringFormat.GenericTypographic))
+            using (var paint = new SKPaint { Typeface = _typeface, TextSize = _fontSize })
             {
-                format.FormatFlags |= StringFormatFlags.MeasureTrailingSpaces;
-
-                var location = new PointF(0f, 0f);
-                var size = System.Drawing.Size.Ceiling(g.MeasureString(text, _font, location, format));
-                var layoutRect = new RectangleF(location, new SizeF(size.Width, 1000));
-
-                for (var s = 0; s <= (text.Length - 1) / 32; s++)
+                using (var textPath = paint.GetTextPath(text, location.X, location.Y))
                 {
-                    var numberOfChar = Math.Min(32, text.Length - 32 * s);
-                    format.SetMeasurableCharacterRanges((from r in Enumerable.Range(32 * s, numberOfChar)
-                        select new CharacterRange(r, 1)).ToArray());
-                    regions.AddRange(from r in g.MeasureCharacterRanges(text, _font, layoutRect, format) select r.GetBounds(g));
+                    path.AddPath(textPath);
                 }
             }
-            return regions;
         }
 
-        public SizeF MeasureString(ISvgRenderer renderer, string text)
+        public float Ascent(ISvgRenderer renderer)
         {
-            var g = GetGraphics(renderer);
-            using (var format = new StringFormat(StringFormat.GenericTypographic))
+            using (var paint = new SKPaint { Typeface = _typeface, TextSize = _fontSize })
             {
-                format.SetMeasurableCharacterRanges(new CharacterRange[] { new CharacterRange(0, text.Length) });
-                format.FormatFlags |= StringFormatFlags.MeasureTrailingSpaces;
-                var r = g.MeasureCharacterRanges(text, _font, new Rectangle(0, 0, 1000, 1000), format);
-                var rect = r[0].GetBounds(g);
-
-                return new SizeF(rect.Width, Ascent(renderer));
+                return -paint.FontMetrics.Ascent;
             }
         }
 
-        private Graphics GetGraphics(ISvgRenderer renderer)
+        public IList<SKRect> MeasureCharacters(ISvgRenderer renderer, string text)
         {
-            var provider = renderer as IGraphicsProvider;
-            if (provider == null)
+            var results = new List<SKRect>();
+            using (var paint = new SKPaint { Typeface = _typeface, TextSize = _fontSize })
             {
-                throw new NotImplementedException("renderer is not IGraphicsProvider");
+                float x = 0;
+                foreach (var ch in text)
+                {
+                    var s = ch.ToString();
+                    var width = paint.MeasureText(s);
+                    results.Add(new SKRect(x, -paint.FontMetrics.Ascent, x + width, -paint.FontMetrics.Descent));
+                    x += width;
+                }
             }
-            return provider.GetGraphics();
+            return results;
+        }
+
+        public SKSize MeasureString(ISvgRenderer renderer, string text)
+        {
+            using (var paint = new SKPaint { Typeface = _typeface, TextSize = _fontSize })
+            {
+                var width = paint.MeasureText(text);
+                var metrics = paint.FontMetrics;
+                return new SKSize(width, metrics.Descent - metrics.Ascent);
+            }
         }
 
         public void Dispose()
         {
-            _font.Dispose();
-
+            _typeface?.Dispose();
         }
     }
 }

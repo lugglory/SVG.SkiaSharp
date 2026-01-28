@@ -1,7 +1,6 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -10,43 +9,51 @@ namespace Svg
         /// <summary>
         /// Applies the required transforms to <see cref="ISvgRenderer"/>.
         /// </summary>
-        /// <param name="renderer">The <see cref="ISvgRenderer"/> to be transformed.</param>
         protected internal override bool PushTransforms(ISvgRenderer renderer)
         {
             if (!base.PushTransforms(renderer))
                 return false;
-            renderer.TranslateTransform(X.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
-                Y.ToDeviceValue(renderer, UnitRenderingType.Vertical, this),
-                MatrixOrder.Prepend);
+            
+            var dx = X.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this);
+            var dy = Y.ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
+            
+            // Apply translation to current transform
+            var current = renderer.Transform;
+            renderer.Transform = current.PostConcat(SKMatrix.CreateTranslation(dx, dy));
+            
             return true;
         }
 
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
-            SvgVisualElement element = (SvgVisualElement)this.OwnerDocument.IdManager.GetElementById(this.ReferencedElement);
-            return (element != null && !this.HasRecursiveReference()) ? element.Path(renderer) : null;
+            if (this.OwnerDocument.IdManager.GetElementById(this.ReferencedElement) is SvgVisualElement element && !this.HasRecursiveReference())
+            {
+                return element.Path(renderer);
+            }
+            return null;
         }
 
         /// <summary>
         /// Gets the bounds of the element.
         /// </summary>
-        /// <value>The bounds.</value>
-        public override RectangleF Bounds
+        public override SKRect Bounds
         {
             get
             {
                 var ew = this.Width.ToDeviceValue(null, UnitRenderingType.Horizontal, this);
                 var eh = this.Height.ToDeviceValue(null, UnitRenderingType.Vertical, this);
                 if (ew > 0 && eh > 0)
-                    return TransformedBounds(new RectangleF(this.Location.ToDeviceValue(null, this),
-                        new SizeF(ew, eh)));
-                var element = this.OwnerDocument.IdManager.GetElementById(this.ReferencedElement) as SvgVisualElement;
-                if (element != null)
+                {
+                    var location = this.Location.ToDeviceValue(null, this);
+                    return TransformedBounds(new SKRect(location.X, location.Y, location.X + ew, location.Y + eh));
+                }
+                
+                if (this.OwnerDocument.IdManager.GetElementById(this.ReferencedElement) is SvgVisualElement element)
                 {
                     return element.Bounds;
                 }
 
-                return new RectangleF();
+                return SKRect.Empty;
             }
         }
 
@@ -54,8 +61,7 @@ namespace Svg
         {
             if (ReferencedElement != null && !HasRecursiveReference())
             {
-                var element = OwnerDocument.IdManager.GetElementById(ReferencedElement) as SvgVisualElement;
-                if (element != null)
+                if (OwnerDocument.IdManager.GetElementById(ReferencedElement) is SvgVisualElement element)
                 {
                     var ew = Width.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this);
                     var eh = Height.ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
@@ -66,14 +72,14 @@ namespace Svg
                         {
                             var sw = ew / viewBox.Width;
                             var sh = eh / viewBox.Height;
-                            renderer.ScaleTransform(sw, sh, MatrixOrder.Prepend);
+                            // Apply scale to current transform
+                            var current = renderer.Transform;
+                            renderer.Transform = current.PostConcat(SKMatrix.CreateScale(sw, sh));
                         }
                     }
 
                     var origParent = element.Parent;
                     element._parent = this;
-                    // as the new parent may have other styles that are inherited,
-                    // we have to redraw the paths for the children
                     element.InvalidateChildPaths();
                     element.RenderElement(renderer);
                     element._parent = origParent;

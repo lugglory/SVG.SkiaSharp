@@ -1,31 +1,31 @@
-﻿using System.Drawing;
+﻿using SkiaSharp;
 
 namespace Svg
 {
     internal class GenericBoundable : ISvgBoundable
     {
-        private RectangleF _rect;
+        private SKRect _rect;
 
-        public GenericBoundable(RectangleF rect)
+        public GenericBoundable(SKRect rect)
         {
             _rect = rect;
         }
         public GenericBoundable(float x, float y, float width, float height)
         {
-            _rect = new RectangleF(x, y, width, height);
+            _rect = new SKRect(x, y, x + width, y + height);
         }
 
-        public PointF Location
+        public SKPoint Location
         {
-            get { return _rect.Location; }
+            get { return new SKPoint(_rect.Left, _rect.Top); }
         }
 
-        public SizeF Size
+        public SKSize Size
         {
-            get { return _rect.Size; }
+            get { return new SKSize(_rect.Width, _rect.Height); }
         }
 
-        public RectangleF Bounds
+        public SKRect Bounds
         {
             get { return _rect; }
         }

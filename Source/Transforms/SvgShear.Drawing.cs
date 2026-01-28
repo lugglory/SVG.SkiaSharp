@@ -1,19 +1,15 @@
-﻿#if !NO_SDC
-using System.Drawing.Drawing2D;
+﻿using SkiaSharp;
 
 namespace Svg.Transforms
 {
-    public sealed partial class SvgShear : SvgTransform
+    public partial class SvgShear
     {
-        public override Matrix Matrix
+        public override SKMatrix Matrix
         {
             get
             {
-                var matrix = new Matrix();
-                matrix.Shear(X, Y);
-                return matrix;
+                return SKMatrix.CreateSkew(this.X, this.Y);
             }
         }
     }
 }
-#endif

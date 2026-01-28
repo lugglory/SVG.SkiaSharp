@@ -1,5 +1,5 @@
 #if !NO_SDC
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 #endif
 
 namespace Svg
@@ -22,7 +22,7 @@ namespace Svg
         SvgUnitCollection StrokeDashArray { get; set; }
         SvgUnit StrokeDashOffset { get; set; }
 #if !NO_SDC
-        GraphicsPath Path(ISvgRenderer renderer);
+        SKPath Path(ISvgRenderer renderer);
 #endif
     }
 }

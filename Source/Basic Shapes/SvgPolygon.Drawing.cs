@@ -1,19 +1,18 @@
 #if !NO_SDC
 using System.Diagnostics;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgPolygon : SvgMarkerElement
     {
-        private GraphicsPath _path;
+        private SKPath _path;
 
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
             if (this._path == null || this.IsPathDirty)
             {
-                this._path = new GraphicsPath();
-                this._path.StartFigure();
+                this._path = new SKPath();
 
                 try
                 {
@@ -22,25 +21,20 @@ namespace Svg
                     {
                         var endPoint = SvgUnit.GetDevicePoint(points[i], points[i + 1], renderer, this);
 
-                        // If it is to render, don't need to consider stroke width.
-                        // i.e stroke width only to be considered when calculating boundary
                         if (renderer == null)
                         {
                             var radius = base.StrokeWidth * 2;
-                            _path.AddEllipse(endPoint.X - radius, endPoint.Y - radius, 2 * radius, 2 * radius);
+                            _path.AddCircle(endPoint.X, endPoint.Y, radius);
                             continue;
                         }
 
                         if (i == 0)
-                            continue;
-                        // first line
-                        else if (_path.PointCount == 0)
                         {
-                            _path.AddLine(SvgUnit.GetDevicePoint(points[i - 2], points[i - 1], renderer, this), endPoint);
+                            _path.MoveTo(endPoint);
                         }
                         else
                         {
-                            _path.AddLine(_path.GetLastPoint(), endPoint);
+                            _path.LineTo(endPoint);
                         }
                     }
                 }
@@ -49,7 +43,7 @@ namespace Svg
                     Trace.TraceError("Error parsing points");
                 }
 
-                this._path.CloseFigure();
+                this._path.Close();
                 if (renderer != null)
                     this.IsPathDirty = false;
             }

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -34,23 +34,23 @@ namespace Svg
         public float Height { get; set; }
 
         /// <summary>
-        /// Performs an implicit conversion from <see cref="SvgViewBox"/> to <see cref="RectangleF"/>.
+        /// Performs an implicit conversion from <see cref="SvgViewBox"/> to <see cref="SKRect"/>.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The result of the conversion.</returns>
-        public static implicit operator RectangleF(SvgViewBox value)
+        public static implicit operator SKRect(SvgViewBox value)
         {
-            return new RectangleF(value.MinX, value.MinY, value.Width, value.Height);
+            return new SKRect(value.MinX, value.MinY, value.MinX + value.Width, value.MinY + value.Height);
         }
 
         /// <summary>
-        /// Performs an implicit conversion from <see cref="RectangleF"/> to <see cref="SvgViewBox"/>.
+        /// Performs an implicit conversion from <see cref="SKRect"/> to <see cref="SvgViewBox"/>.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns>The result of the conversion.</returns>
-        public static implicit operator SvgViewBox(RectangleF value)
+        public static implicit operator SvgViewBox(SKRect value)
         {
-            return new SvgViewBox(value.X, value.Y, value.Width, value.Height);
+            return new SvgViewBox(value.Left, value.Top, value.Width, value.Height);
         }
 
         /// <summary>
@@ -109,16 +109,6 @@ namespace Svg
 
     internal class SvgViewBoxConverter : TypeConverter
     {
-        /// <summary>
-        /// Converts the given object to the type of this converter, using the specified context and culture information.
-        /// </summary>
-        /// <param name="context">An <see cref="T:System.ComponentModel.ITypeDescriptorContext"/> that provides a format context.</param>
-        /// <param name="culture">The <see cref="T:System.Globalization.CultureInfo"/> to use as the current culture.</param>
-        /// <param name="value">The <see cref="T:System.Object"/> to convert.</param>
-        /// <returns>
-        /// An <see cref="T:System.Object"/> that represents the converted value.
-        /// </returns>
-        /// <exception cref="T:System.NotSupportedException">The conversion cannot be performed. </exception>
         public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value)
         {
             if (value is string)
@@ -139,10 +129,7 @@ namespace Svg
 
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
-            if (sourceType == typeof(string))
-                return true;
-
-            return base.CanConvertFrom(context, sourceType);
+            return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
         }
 
         public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
@@ -151,9 +138,9 @@ namespace Svg
             {
                 var viewBox = (SvgViewBox)value;
 
-                return string.Format("{0}, {1}, {2}, {3}",
-                    viewBox.MinX.ToString(CultureInfo.InvariantCulture), viewBox.MinY.ToSvgString(),
-                    viewBox.Width.ToString(CultureInfo.InvariantCulture), viewBox.Height.ToSvgString());
+                return string.Format(CultureInfo.InvariantCulture, "{0}, {1}, {2}, {3}",
+                    viewBox.MinX, viewBox.MinY,
+                    viewBox.Width, viewBox.Height);
             }
 
             return base.ConvertTo(context, culture, value, destinationType);

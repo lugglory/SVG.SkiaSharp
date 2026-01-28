@@ -1,39 +1,34 @@
-﻿#if !NO_SDC
+#if !NO_SDC
+using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgElement
     {
-        /// <summary>
-        /// Get the font information based on data stored with the text object or inherited from the parent.
-        /// </summary>
-        /// <returns></returns>
         internal IFontDefn GetFont(ISvgRenderer renderer, SvgFontManager fontManager)
         {
-            // Get the font-size
             float fontSize;
             var fontSizeUnit = this.FontSize;
             if (fontSizeUnit == SvgUnit.None || fontSizeUnit == SvgUnit.Empty)
             {
-                fontSize = new SvgUnit(SvgUnitType.Em, 1.0f);
+                fontSize = new SvgUnit(SvgUnitType.Em, 1.0f).ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
             }
             else
             {
                 fontSize = fontSizeUnit.ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
             }
 
-            var family = ValidateFontFamily(this.FontFamily, this.OwnerDocument, fontManager ?? this.OwnerDocument.FontManager);
-            var sFaces = family as IEnumerable<SvgFontFace>;
+            var manager = fontManager ?? this.OwnerDocument?.FontManager ?? new SvgFontManager();
+            var familyResult = ValidateFontFamily(this.FontFamily, this.OwnerDocument, manager);
+            var sFaces = familyResult as IEnumerable<SvgFontFace>;
             var ppi = this.OwnerDocument?.Ppi ?? SvgDocument.PointsPerInch;
 
             if (sFaces == null)
             {
-                var fontStyle = System.Drawing.FontStyle.Regular;
-
-                // Get the font-weight
+                var weight = SKFontStyleWeight.Normal;
                 switch (this.FontWeight)
                 {
                     case SvgFontWeight.Bold:
@@ -41,58 +36,39 @@ namespace Svg
                     case SvgFontWeight.W700:
                     case SvgFontWeight.W800:
                     case SvgFontWeight.W900:
-                        fontStyle |= System.Drawing.FontStyle.Bold;
+                        weight = SKFontStyleWeight.Bold;
                         break;
                     case SvgFontWeight.Bolder:
-                        switch (Parent?.FontWeight ?? SvgFontWeight.Normal)
-                        {
-                            case SvgFontWeight.W100:
-                            case SvgFontWeight.W200:
-                            case SvgFontWeight.W300:
-                                break;
-                            default:
-                                fontStyle |= System.Drawing.FontStyle.Bold;
-                                break;
-                        }
+                        weight = SKFontStyleWeight.ExtraBold;
                         break;
                     case SvgFontWeight.Lighter:
-                        switch (Parent?.FontWeight ?? SvgFontWeight.Normal)
-                        {
-                            case SvgFontWeight.W800:
-                            case SvgFontWeight.W900:
-                                fontStyle |= System.Drawing.FontStyle.Bold;
-                                break;
-                        }
+                        weight = SKFontStyleWeight.Light;
                         break;
                 }
 
-                // Get the font-style
+                var slant = SKFontStyleSlant.Upright;
                 switch (this.FontStyle)
                 {
                     case SvgFontStyle.Italic:
                     case SvgFontStyle.Oblique:
-                        fontStyle |= System.Drawing.FontStyle.Italic;
+                        slant = SKFontStyleSlant.Italic;
                         break;
                 }
 
-                // Get the text-decoration
-                var textDecoration = this.TextDecoration;
-                if (!textDecoration.HasFlag(SvgTextDecoration.None))
+                SKTypeface tf = null;
+                if (familyResult is SKTypeface resultTf)
                 {
-                    if (textDecoration.HasFlag(SvgTextDecoration.LineThrough))
-                        fontStyle |= System.Drawing.FontStyle.Strikeout;
-                    if (textDecoration.HasFlag(SvgTextDecoration.Underline))
-                        fontStyle |= System.Drawing.FontStyle.Underline;
+                    // If we already found a typeface, we might want to try to get one with matching style
+                    tf = SKTypeface.FromFamilyName(resultTf.FamilyName, weight, SKFontStyleWidth.Normal, slant);
+                }
+                else if (familyResult is string familyName)
+                {
+                    tf = manager.FindFont(familyName, weight, SKFontStyleWidth.Normal, slant);
                 }
 
-                var ff = family as FontFamily;
-                if (!ff.IsStyleAvailable(fontStyle))
-                {
-                    // Do Something
-                }
+                if (tf == null) tf = SKTypeface.Default;
 
-                // Get the font-family
-                return new GdiFontDefn(new Font(ff, fontSize, fontStyle, GraphicsUnit.Pixel), ppi);
+                return new SkiaFontDefn(tf, fontSize, ppi);
             }
             else
             {
@@ -108,24 +84,19 @@ namespace Svg
 
         public static object ValidateFontFamily(string fontFamilyList, SvgDocument doc, SvgFontManager fontManager)
         {
-            // Split font family list on "," and then trim start and end spaces and quotes.
-            var fontParts = (fontFamilyList ?? string.Empty).Split(new[] { ',' }).Select(fontName => fontName.Trim(new[] { '"', ' ', '\'' }));
+            var fontParts = (fontFamilyList ?? string.Empty).Split(new char[] { ',' }).Select(fontName => fontName.Trim(new char[] { '"', ' ', '\'' }));
 
-            // Find a the first font that exists in the list of installed font families.
-            // styles from IE get sent through as lowercase.
             foreach (var f in fontParts)
             {
-                IEnumerable<SvgFontFace> fontFaces;
-                if (doc != null && doc.FontDefns().TryGetValue(f, out fontFaces))
+                if (doc != null && doc.FontDefns().TryGetValue(f, out var fontFaces))
                     return fontFaces;
 
-                var family = fontManager.FindFont(f);
-                if (family != null)
-                    return family;
+                var tf = fontManager.FindFont(f);
+                if (tf != null && !tf.FamilyName.Equals("Default", StringComparison.OrdinalIgnoreCase))
+                    return tf;
             }
 
-            // No valid font family found from the list requested.
-            return System.Drawing.FontFamily.GenericSansSerif;
+            return SKTypeface.Default;
         }
     }
 }

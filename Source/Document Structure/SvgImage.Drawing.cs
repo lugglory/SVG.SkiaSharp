@@ -1,65 +1,58 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgImage : SvgVisualElement
     {
         private bool _gettingBounds;
-        private GraphicsPath _path;
+        private SKPath _path;
 
         /// <summary>
         /// Gets the bounds of the element.
         /// </summary>
-        /// <value>The bounds.</value>
-        public override RectangleF Bounds
+        public override SKRect Bounds
         {
             get
             {
                 if (_gettingBounds)
                 {
-                    // we can get here recursively in case of percent size units while calculating
-                    // the size of the parent object - in this case just return empty bounds to avoid
-                    // a recursion (see issue #436)
-                    return new RectangleF();
+                    return SKRect.Empty;
                 }
                 _gettingBounds = true;
-                var bounds = TransformedBounds(new RectangleF(Location.ToDeviceValue(null, this),
-                    new SizeF(Width.ToDeviceValue(null, UnitRenderingType.Horizontal, this),
-                        Height.ToDeviceValue(null, UnitRenderingType.Vertical, this))));
+                var location = Location.ToDeviceValue(null, this);
+                var width = Width.ToDeviceValue(null, UnitRenderingType.Horizontal, this);
+                var height = Height.ToDeviceValue(null, UnitRenderingType.Vertical, this);
+                var bounds = TransformedBounds(new SKRect(location.X, location.Y, location.X + width, location.Y + height));
                 _gettingBounds = false;
                 return bounds;
             }
         }
 
         /// <summary>
-        /// Gets the <see cref="GraphicsPath"/> for this element.
+        /// Gets the <see cref="SKPath"/> for this element.
         /// </summary>
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
             if (_path == null)
             {
-                // Same size of rectangle can suffice to provide bounds of the image
-                var rectangle = new RectangleF(Location.ToDeviceValue(renderer, this), SvgUnit.GetDeviceSize(Width, Height, renderer, this));
-
-                _path = new GraphicsPath();
-                _path.StartFigure();
-                _path.AddRectangle(rectangle);
-                _path.CloseFigure();
+                var location = Location.ToDeviceValue(renderer, this);
+                var size = SvgUnit.GetDeviceSize(Width, Height, renderer, this);
+                _path = new SKPath();
+                _path.AddRect(new SKRect(location.X, location.Y, location.X + size.Width, location.Y + size.Height));
             }
-
             return _path;
         }
 
         /// <summary>
-        /// Renders the <see cref="SvgElement"/> and contents to the specified <see cref="Graphics"/> object.
+        /// Renders the <see cref="SvgElement"/> and contents to the specified <see cref="ISvgRenderer"/> object.
         /// </summary>
         protected override void Render(ISvgRenderer renderer)
         {
@@ -67,25 +60,28 @@ namespace Svg
                 return;
 
             var img = GetImage(Href);
-            var bmp = img as Image;
+            var skImg = img as SKImage;
             var svg = img as SvgFragment;
-            if (bmp == null && svg == null)
+            if (skImg == null && svg == null)
                 return;
+            
             try
             {
                 if (PushTransforms(renderer))
                 {
-                    RectangleF srcRect;
-                    if (bmp != null)
-                        srcRect = new RectangleF(0f, 0f, bmp.Width, bmp.Height);
+                    SKRect srcRect;
+                    if (skImg != null)
+                        srcRect = new SKRect(0f, 0f, skImg.Width, skImg.Height);
                     else
-                        srcRect = new RectangleF(new PointF(0f, 0f), svg.GetDimensions(renderer));
+                        srcRect = new SKRect(0f, 0f, svg.GetDimensions(renderer).Width, svg.GetDimensions(renderer).Height);
 
-                    var destClip = new RectangleF(Location.ToDeviceValue(renderer, this),
-                        new SizeF(Width.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this),
-                            Height.ToDeviceValue(renderer, UnitRenderingType.Vertical, this)));
+                    var location = Location.ToDeviceValue(renderer, this);
+                    var width = Width.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this);
+                    var height = Height.ToDeviceValue(renderer, UnitRenderingType.Vertical, this);
+                    var destClip = new SKRect(location.X, location.Y, location.X + width, location.Y + height);
                     var destRect = destClip;
-                    renderer.SetClip(new Region(destClip), CombineMode.Intersect);
+                    
+                    renderer.SetClip(destClip);
                     SetClip(renderer);
 
                     var aspectRatio = AspectRatio;
@@ -109,8 +105,6 @@ namespace Svg
 
                         switch (aspectRatio.Align)
                         {
-                            case SvgPreserveAspectRatio.xMinYMin:
-                                break;
                             case SvgPreserveAspectRatio.xMidYMin:
                                 xOffset = (destClip.Width - srcRect.Width * fScaleX) / 2;
                                 break;
@@ -141,22 +135,28 @@ namespace Svg
                                 break;
                         }
 
-                        destRect = new RectangleF(destClip.X + xOffset, destClip.Y + yOffset,
-                            srcRect.Width * fScaleX, srcRect.Height * fScaleY);
+                        destRect = new SKRect(destClip.Left + xOffset, destClip.Top + yOffset,
+                            destClip.Left + xOffset + srcRect.Width * fScaleX, destClip.Top + yOffset + srcRect.Height * fScaleY);
                     }
 
-                    if (bmp != null)
+                    if (skImg != null)
                     {
                         var opacity = FixOpacityValue(Opacity);
                         if (opacity == 1f)
-                            renderer.DrawImage(bmp, destRect, srcRect, GraphicsUnit.Pixel);
+                            renderer.DrawImage(skImg, destRect, srcRect);
                         else
-                            renderer.DrawImage(bmp, destRect, srcRect, GraphicsUnit.Pixel, opacity);
+                        {
+                            var paint = new SKPaint { Color = SKColors.White.WithAlpha((byte)(opacity * 255)) };
+                            renderer.DrawImage(skImg, destRect, srcRect, paint);
+                        }
                     }
                     else
                     {
-                        renderer.TranslateTransform(destRect.X, destRect.Y, MatrixOrder.Prepend);
-                        renderer.ScaleTransform(destRect.Width / srcRect.Width, destRect.Height / srcRect.Height, MatrixOrder.Prepend);
+                        var current = renderer.Transform;
+                        var next = current.PostConcat(SKMatrix.CreateTranslation(destRect.Left, destRect.Top));
+                        next = next.PostConcat(SKMatrix.CreateScale(destRect.Width / srcRect.Width, destRect.Height / srcRect.Height));
+                        renderer.Transform = next;
+                        
                         try
                         {
                             renderer.SetBoundable(new GenericBoundable(srcRect));
@@ -167,18 +167,13 @@ namespace Svg
                             renderer.PopBoundable();
                         }
                     }
-
-                    ResetClip(renderer);
                 }
             }
             finally
             {
                 PopTransforms(renderer);
-
-                if (bmp != null)
-                    bmp.Dispose();
+                if (skImg != null) skImg.Dispose();
             }
-            // TODO: cache images... will need a shared context for this
         }
 
         public object GetImage()
@@ -188,15 +183,12 @@ namespace Svg
 
         public object GetImage(string uriString)
         {
-            // Uri MaxLength is 65519 (https://msdn.microsoft.com/en-us/library/z6c2z492.aspx)
-            // if using data URI scheme, very long URI may happen.
             var safeUriString = uriString.Length > 65519 ? uriString.Substring(0, 65519) : uriString;
 
             try
             {
                 var uri = new Uri(safeUriString, UriKind.RelativeOrAbsolute);
 
-                // handle data/uri embedded images (http://en.wikipedia.org/wiki/Data_URI_scheme)
                 if (uri.IsAbsoluteUri && uri.Scheme == "data")
                     return GetImageFromDataUri(uriString);
 
@@ -210,15 +202,19 @@ namespace Svg
                 }
 
                 if (uri.IsFile)
-                    using (var stream = File.OpenRead(uri.AbsolutePath))
+                {
+                    var path = uri.LocalPath;
+                    if (path.EndsWith(".svg", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        if (uri.LocalPath.EndsWith(".svg", StringComparison.InvariantCultureIgnoreCase))
-                            return LoadSvg(stream, uri);
-                        else
-                            using (var image = Image.FromStream(stream))
-                                return new Bitmap(image);
+                        using (var stream = File.OpenRead(path)) return LoadSvg(stream, uri);
                     }
+                    else
+                    {
+                        return SKImage.FromEncodedData(path);
+                    }
+                }
                 else if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                {
                     using (var httpResponseMessage = HttpClient.GetAsync(uri).Result)
                     using (var stream = httpResponseMessage.Content.ReadAsStreamAsync().Result)
                     {
@@ -226,9 +222,15 @@ namespace Svg
                             httpResponseMessage.Content.Headers.ContentType.MediaType == MimeTypeSvg)
                             return LoadSvg(stream, uri);
                         else
-                            using (var image = Image.FromStream(stream))
-                                return new Bitmap(image);
+                        {
+                            using (var memStream = new MemoryStream())
+                            {
+                                stream.CopyTo(memStream);
+                                return SKImage.FromEncodedData(memStream.ToArray());
+                            }
+                        }
                     }
+                }
                 else
                     throw new NotSupportedException();
             }
@@ -267,9 +269,7 @@ namespace Svg
             foreach (var param in headers)
             {
                 var p = param.Split('=');
-                if (p.Length < 2)
-                    continue;
-
+                if (p.Length < 2) continue;
                 var attribute = p[0].Trim();
                 if (attribute.Equals("charset", StringComparison.InvariantCultureIgnoreCase))
                     charset = p[1].Trim();
@@ -288,13 +288,10 @@ namespace Svg
                     return LoadSvg(stream, OwnerDocument.BaseUri);
                 }
             }
-            // support nonstandard "img" spelling of mimetype
             else if (mimeType.StartsWith("image/", StringComparison.InvariantCultureIgnoreCase) || mimeType.StartsWith("img/", StringComparison.InvariantCultureIgnoreCase))
             {
                 var dataBytes = base64 ? Convert.FromBase64String(data) : Encoding.Default.GetBytes(data);
-                using (var stream = new MemoryStream(dataBytes))
-                using (var image = Image.FromStream(stream))
-                    return new Bitmap(image);
+                return SKImage.FromEncodedData(dataBytes);
             }
             else
                 return null;

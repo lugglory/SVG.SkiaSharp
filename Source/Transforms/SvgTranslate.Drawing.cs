@@ -1,17 +1,15 @@
 #if !NO_SDC
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg.Transforms
 {
     public sealed partial class SvgTranslate : SvgTransform
     {
-        public override Matrix Matrix
+        public override SKMatrix Matrix
         {
             get
             {
-                var matrix = new Matrix();
-                matrix.Translate(X, Y);
-                return matrix;
+                return SKMatrix.CreateTranslation(this.X, this.Y);
             }
         }
     }

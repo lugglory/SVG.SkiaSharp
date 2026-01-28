@@ -1,5 +1,5 @@
 #if !NO_SDC
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -15,13 +15,13 @@ namespace Svg
         }
 
         /// <summary>
-        /// Gets a <see cref="Brush"/> representing the current paint server.
+        /// Gets a <see cref="SKPaint"/> representing the current paint server.
         /// </summary>
         /// <param name="styleOwner">The owner <see cref="SvgVisualElement"/>.</param>
         /// <param name="renderer">The renderer object.</param>
-        /// <param name="opacity">The opacity of the brush.</param>
-        /// <param name="forStroke">Not used.</param>
-        public abstract Brush GetBrush(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false);
+        /// <param name="opacity">The opacity of the paint.</param>
+        /// <param name="forStroke">True if the paint is for a stroke.</param>
+        public abstract SKPaint GetPaint(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false);
     }
 }
 #endif

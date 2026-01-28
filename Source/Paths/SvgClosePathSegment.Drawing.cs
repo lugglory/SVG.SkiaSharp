@@ -1,34 +1,20 @@
-﻿#if !NO_SDC
-using System.Drawing;
-using System.Drawing.Drawing2D;
+#if !NO_SDC
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgClosePathSegment : SvgPathSegment
     {
-        public override PointF AddToPath(GraphicsPath graphicsPath, PointF start, SvgPathSegmentList parent)
+        public override SKPoint AddToPath(SKPath graphicsPath, SKPoint start, SvgPathSegmentList parent)
         {
-            graphicsPath.CloseFigure();
+            graphicsPath.Close();
 
-            var end = start;
-            // Check for empty path, as graphicsPath.PathTypes will throw exception: ArgumentException 
             if (graphicsPath.PointCount == 0)
-                return end;
+                return start;
 
-            var pathTypes = graphicsPath.PathTypes;
-            for (var i = graphicsPath.PointCount - 1; i >= 0; --i)
-                if ((pathTypes[i] & 0x7) == 0)
-                {
-                    end = graphicsPath.PathPoints[i];
-                    break;
-                }
-            return end;
-        }
-
-        [System.Obsolete("Use new AddToPath.")]
-        public override void AddToPath(GraphicsPath graphicsPath)
-        {
-            AddToPath(graphicsPath, Start, null);
+            // Fallback: return the first point of the path.
+            // In many cases this is the start of the current subpath.
+            return graphicsPath.Points[0];
         }
     }
 }

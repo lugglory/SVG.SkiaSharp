@@ -1,24 +1,16 @@
 #if !NO_SDC
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgLineSegment : SvgPathSegment
     {
-        public override PointF AddToPath(GraphicsPath graphicsPath, PointF start, SvgPathSegmentList parent)
+        public override SKPoint AddToPath(SKPath graphicsPath, SKPoint start, SvgPathSegmentList parent)
         {
             var end = ToAbsolute(End, IsRelative, start);
-            graphicsPath.AddLine(start, end);
+            graphicsPath.LineTo(end);
             return end;
         }
-
-        [System.Obsolete("Use new AddToPath.")]
-        public override void AddToPath(GraphicsPath graphicsPath)
-        {
-            AddToPath(graphicsPath, Start, null);
-        }
-
     }
 }
 #endif

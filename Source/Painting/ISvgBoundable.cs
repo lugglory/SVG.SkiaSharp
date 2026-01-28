@@ -1,21 +1,21 @@
-﻿using System.Drawing;
+﻿using SkiaSharp;
 
 namespace Svg
 {
     public interface ISvgBoundable
     {
 #if !NO_SDC
-        PointF Location
+        SKPoint Location
         {
             get;
         }
 
-        SizeF Size
+        SKSize Size
         {
             get;
         }
 
-        RectangleF Bounds
+        SKRect Bounds
         {
             get;
         }

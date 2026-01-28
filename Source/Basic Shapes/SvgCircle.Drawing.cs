@@ -1,35 +1,24 @@
 #if !NO_SDC
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgCircle : SvgPathBasedElement
     {
-        private GraphicsPath _path;
+        private SKPath _path;
 
         /// <summary>
-        /// Gets the <see cref="GraphicsPath"/> representing this element.
+        /// Gets the <see cref="SKPath"/> representing this element.
         /// </summary>
-        public override GraphicsPath Path(ISvgRenderer renderer)
+        public override SKPath Path(ISvgRenderer renderer)
         {
             if (this._path == null || this.IsPathDirty)
             {
-                var halfStrokeWidth = base.StrokeWidth / 2;
-
-                // If it is to render, don't need to consider stroke width.
-                // i.e stroke width only to be considered when calculating boundary
-                if (renderer != null)
-                {
-                    halfStrokeWidth = 0;
-                    this.IsPathDirty = false;
-                }
-
-                _path = new GraphicsPath();
-                _path.StartFigure();
+                _path = new SKPath();
                 var center = this.Center.ToDeviceValue(renderer, this);
-                var radius = this.Radius.ToDeviceValue(renderer, UnitRenderingType.Other, this) + halfStrokeWidth;
-                _path.AddEllipse(center.X - radius, center.Y - radius, 2 * radius, 2 * radius);
-                _path.CloseFigure();
+                var radius = this.Radius.ToDeviceValue(renderer, UnitRenderingType.Other, this);
+                _path.AddCircle(center.X, center.Y, radius);
+                this.IsPathDirty = false;
             }
             return _path;
         }
@@ -40,7 +29,6 @@ namespace Svg
         /// <param name="renderer">The renderer object.</param>
         protected override void Render(ISvgRenderer renderer)
         {
-            // Don't draw if there is no radius set
             if (this.Radius.Value > 0.0f)
             {
                 base.Render(renderer);

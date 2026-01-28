@@ -1,23 +1,23 @@
-﻿using System;
-using System.Drawing;
+using System;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgColourServer : SvgPaintServer
     {
         public SvgColourServer()
-            : this(System.Drawing.Color.Black)
+            : this(SKColors.Black)
         {
         }
 
-        public SvgColourServer(Color colour)
+        public SvgColourServer(SKColor colour)
         {
             this._colour = colour;
         }
 
-        private Color _colour;
+        private SKColor _colour;
 
-        public Color Colour
+        public SKColor Colour
         {
             get { return this._colour; }
             set { this._colour = value; }
@@ -32,14 +32,10 @@ namespace Svg
             else if (this == Inherit)
                 return "inherit";
 
-            Color c = this.Colour;
-#if !NETSTANDARD2_0
-            // Return the name if it exists
-            if (c.IsKnownColor)
-                return c.Name;
-#endif
+            SKColor c = this.Colour;
+            
             // Return the hex value
-            return String.Format("#{0}", c.ToArgb().ToString("x8").Substring(2));
+            return String.Format("#{0:X2}{1:X2}{2:X2}", c.Red, c.Green, c.Blue);
         }
 
         public override SvgElement DeepCopy()

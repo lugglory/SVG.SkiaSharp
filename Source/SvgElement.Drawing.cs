@@ -1,41 +1,33 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
+using Svg.Transforms;
 
 namespace Svg
 {
     public abstract partial class SvgElement : ISvgElement, ISvgTransformable, ICloneable, ISvgNode
     {
-        private Matrix _graphicsTransform;
-        private Region _graphicsClip;
-
         /// <summary>
         /// Applies the required transforms to <see cref="ISvgRenderer"/>.
         /// </summary>
         /// <param name="renderer">The <see cref="ISvgRenderer"/> to be transformed.</param>
         protected internal virtual bool PushTransforms(ISvgRenderer renderer)
         {
-            _graphicsTransform = renderer.Transform;
-            _graphicsClip = renderer.GetClip();
+            renderer.Save();
 
             var transforms = Transforms;
-            // Return if there are no transforms
             if (transforms == null || transforms.Count == 0)
                 return true;
 
-            using (var transformMatrix = transforms.GetMatrix())
-            {
-                using (var zeroMatrix = new Matrix(0f, 0f, 0f, 0f, 0f, 0f))
-                    if (zeroMatrix.Equals(transformMatrix))
-                        return false;
+            var transformMatrix = transforms.GetMatrix();
+            if (transformMatrix.IsIdentity)
+                return true;
 
-                using (var graphicsTransform = _graphicsTransform.Clone())
-                {
-                    graphicsTransform.Multiply(transformMatrix);
-                    renderer.Transform = graphicsTransform;
-                }
-            }
+            // Apply transformation
+            // Assuming PostConcat behavior similar to GDI+ Append
+            var current = renderer.Transform;
+            var next = current.PostConcat(transformMatrix);
+            renderer.Transform = next;
 
             return true;
         }
@@ -46,11 +38,7 @@ namespace Svg
         /// <param name="renderer">The <see cref="ISvgRenderer"/> that should have transforms removed.</param>
         protected internal virtual void PopTransforms(ISvgRenderer renderer)
         {
-            renderer.Transform = _graphicsTransform;
-            _graphicsTransform.Dispose();
-            _graphicsTransform = null;
-            renderer.SetClip(_graphicsClip);
-            _graphicsClip = null;
+            renderer.Restore();
         }
 
         /// <summary>
@@ -77,17 +65,12 @@ namespace Svg
         /// </summary>
         /// <param name="bounds">The rectangle to be transformed.</param>
         /// <returns>The transformed rectangle, or the original rectangle if no transformation exists.</returns>
-        protected RectangleF TransformedBounds(RectangleF bounds)
+        protected SKRect TransformedBounds(SKRect bounds)
         {
             if (Transforms != null && Transforms.Count > 0)
             {
-                using (var path = new GraphicsPath())
-                using (var matrix = Transforms.GetMatrix())
-                {
-                    path.AddRectangle(bounds);
-                    path.Transform(matrix);
-                    return path.GetBounds();
-                }
+                var matrix = Transforms.GetMatrix();
+                return matrix.MapRect(bounds);
             }
             return bounds;
         }
@@ -142,31 +125,34 @@ namespace Svg
         /// </summary>
         /// <param name="elem"></param>
         /// <param name="path"></param>
-        protected void AddPaths(SvgElement elem, GraphicsPath path)
+        protected void AddPaths(SvgElement elem, SKPath path)
         {
             foreach (var child in elem.Children)
             {
                 // Skip to avoid double calculate Symbol element
-                // symbol element is only referenced by use element
-                // So here we need to skip when it is directly considered
                 if (child is SvgSymbol)
                     continue;
 
-                if (child is SvgVisualElement)
+                if (child is SvgVisualElement visualElement)
                 {
                     if (!(child is SvgGroup))
                     {
-                        var childPath = ((SvgVisualElement)child).Path(null);
+                        var childPath = visualElement.Path(null);
                         if (childPath != null)
-                            using (childPath = (GraphicsPath)childPath.Clone())
+                        {
+                            // Clone path to transform it
+                            using (var clonedPath = new SKPath(childPath))
                             {
                                 if (child.Transforms != null)
-                                    using (var matrix = child.Transforms.GetMatrix())
-                                        childPath.Transform(matrix);
+                                {
+                                    var matrix = child.Transforms.GetMatrix();
+                                    clonedPath.Transform(matrix);
+                                }
 
-                                if (childPath.PointCount > 0)
-                                    path.AddPath(childPath, false);
+                                if (clonedPath.PointCount > 0)
+                                    path.AddPath(clonedPath);
                             }
+                        }
                     }
                 }
 
@@ -179,13 +165,13 @@ namespace Svg
         /// </summary>
         /// <param name="elem"></param>
         /// <param name="renderer"></param>
-        protected GraphicsPath GetPaths(SvgElement elem, ISvgRenderer renderer)
+        protected SKPath GetPaths(SvgElement elem, ISvgRenderer renderer)
         {
-            var ret = new GraphicsPath();
+            var ret = new SKPath();
 
             foreach (var child in elem.Children)
             {
-                if (child is SvgVisualElement)
+                if (child is SvgVisualElement visualElement)
                 {
                     if (child is SvgGroup)
                     {
@@ -193,32 +179,35 @@ namespace Svg
                         if (childPath.PointCount > 0)
                         {
                             if (child.Transforms != null)
-                                using (var matrix = child.Transforms.GetMatrix())
-                                    childPath.Transform(matrix);
+                            {
+                                var matrix = child.Transforms.GetMatrix();
+                                childPath.Transform(matrix);
+                            }
 
-                            ret.AddPath(childPath, false);
+                            ret.AddPath(childPath);
                         }
                     }
                     else
                     {
-                        var childPath = ((SvgVisualElement)child).Path(renderer);
-                        childPath = childPath != null ? (GraphicsPath)childPath.Clone() : new GraphicsPath();
+                        var childPath = visualElement.Path(renderer);
+                        var pathToAdd = childPath != null ? new SKPath(childPath) : new SKPath();
 
-                        // Non-group element can have child element which we have to consider. i.e tspan in text element
                         if (child.Children.Count > 0)
                         {
                             var descendantPath = GetPaths(child, renderer);
                             if (descendantPath.PointCount > 0)
-                                childPath.AddPath(descendantPath, false);
+                                pathToAdd.AddPath(descendantPath);
                         }
 
-                        if (childPath.PointCount > 0)
+                        if (pathToAdd.PointCount > 0)
                         {
                             if (child.Transforms != null)
-                                using (var matrix = child.Transforms.GetMatrix())
-                                    childPath.Transform(matrix);
+                            {
+                                var matrix = child.Transforms.GetMatrix();
+                                pathToAdd.Transform(matrix);
+                            }
 
-                            ret.AddPath(childPath, false);
+                            ret.AddPath(pathToAdd);
                         }
                     }
                 }

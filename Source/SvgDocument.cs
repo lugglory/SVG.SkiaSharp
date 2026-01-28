@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Drawing;
+using SkiaSharp;
 using System.IO;
 using System.Text;
 using System.Xml;
@@ -376,7 +376,7 @@ namespace Svg
 
             var svgDocument = Create<T>(reader, elementFactory, styles);
             
-            if (css != null) {
+            if (css != null) { 
                 styles.Add(new SvgUnknownElement() { Content = css });
             }
 
@@ -418,12 +418,6 @@ namespace Svg
         internal static T Create<T>(XmlReader reader, SvgElementFactory elementFactory, List<ISvgNode> styles)
             where T : SvgDocument, new()
         {
-#if !NO_SDC
-            if (!SkipGdiPlusCapabilityCheck)
-            {
-                EnsureSystemIsGdiPlusCapable(); // Validate whether the GDI+ can be loaded, this will yield an exception if not
-            }
-#endif
             var elementStack = new Stack<SvgElement>();
             bool elementEmpty;
             SvgElement element = null;
@@ -472,37 +466,37 @@ namespace Svg
                             }
 
                             break;
-                        case XmlNodeType.EndElement:
-
-                            // Pop the element out of the stack
-                            element = elementStack.Pop();
-
-                            if (element.Nodes.OfType<SvgContentNode>().Any())
-                            {
-                                element.Content = string.Concat((from n in element.Nodes select n.Content).ToArray());
-                            }
-                            else
-                            {
-                                element.Nodes.Clear(); // No sense wasting the space where it isn't needed
-                            }
-
-                            var unknown = element as SvgUnknownElement;
-                            if (unknown != null && unknown.ElementName == "style")
-                            {
-                                styles.Add(unknown);
-                            }
-                            break;
-                        case XmlNodeType.CDATA:
-                        case XmlNodeType.Text:
-                        case XmlNodeType.SignificantWhitespace:
-                            element = elementStack.Peek();
-                            element.Nodes.Add(new SvgContentNode() { Content = reader.Value });
-                            break;
-                        case XmlNodeType.EntityReference:
-                            reader.ResolveEntity();
-                            element = elementStack.Peek();
-                            element.Nodes.Add(new SvgContentNode() { Content = reader.Value });
-                            break;
+                                                case XmlNodeType.EndElement:
+                        
+                                                    // Pop the element out of the stack
+                                                    element = elementStack.Pop();
+                        
+                                                    if (element.Nodes.OfType<SvgContentNode>().Any())
+                                                    {
+                                                        element.Content = string.Concat((from n in element.Nodes select n.Content).ToArray());
+                                                    }
+                                                    else
+                                                    {
+                                                        element.Nodes.Clear(); // No sense wasting the space where it isn't needed
+                                                    }
+                        
+                                                    var unknown = element as SvgUnknownElement;
+                                                    if (unknown != null && unknown.ElementName == "style")
+                                                    {
+                                                        styles.Add(unknown);
+                                                    }
+                                                    break;
+                                                case XmlNodeType.CDATA:
+                                                case XmlNodeType.Text:
+                                                case XmlNodeType.SignificantWhitespace:
+                                                    element = elementStack.Peek();
+                                                    element.Nodes.Add(new SvgContentNode() { Content = reader.Value });
+                                                    break;
+                                                case XmlNodeType.EntityReference:
+                                                    reader.ResolveEntity();
+                                                    element = elementStack.Peek();
+                                                    element.Nodes.Add(new SvgContentNode() { Content = reader.Value });
+                                                    break;
                     }
                 }
                 catch (Exception exc)
@@ -537,7 +531,7 @@ namespace Svg
         /// <param name="size"></param>
         /// <param name="rasterWidth"></param>
         /// <param name="rasterHeight"></param>
-        public virtual void RasterizeDimensions(ref SizeF size, int rasterWidth, int rasterHeight)
+        public virtual void RasterizeDimensions(ref SKSize size, int rasterWidth, int rasterHeight)
         {
             if (size.Width == 0)
                 return;
@@ -545,16 +539,16 @@ namespace Svg
             // Ratio of height/width of the original SVG size, to be used for scaling transformation
             float ratio = size.Height / size.Width;
 
-            size.Width = rasterWidth > 0 ? rasterWidth : size.Width;
-            size.Height = rasterHeight > 0 ? rasterHeight : size.Height;
+            size = new SKSize(rasterWidth > 0 ? rasterWidth : size.Width, 
+                              rasterHeight > 0 ? rasterHeight : size.Height);
 
             if (rasterHeight == 0 && rasterWidth > 0)
             {
-                size.Height = (int)(rasterWidth * ratio);
+                size = new SKSize(size.Width, rasterWidth * ratio);
             }
             else if (rasterHeight > 0 && rasterWidth == 0)
             {
-                size.Width = (int)(rasterHeight / ratio);
+                size = new SKSize(rasterHeight / ratio, size.Height);
             }
         }
 

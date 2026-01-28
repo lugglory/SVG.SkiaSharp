@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Drawing;
+using SkiaSharp;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -14,19 +14,21 @@ namespace Svg
     /// </summary>
     public static class SvgExtentions
     {
-        public static void SetRectangle(this SvgRectangle r, RectangleF bounds)
+        public static void SetRectangle(this SvgRectangle r, SKRect bounds)
         {
-            r.X = bounds.X;
-            r.Y = bounds.Y;
+            r.X = bounds.Left;
+            r.Y = bounds.Top;
             r.Width = bounds.Width;
             r.Height = bounds.Height;
         }
+
 #if !NO_SDC
-        public static RectangleF GetRectangle(this SvgRectangle r)
+        public static SKRect GetRectangle(this SvgRectangle r)
         {
-            return new RectangleF(r.X, r.Y, r.Width, r.Height);
+            return new SKRect(r.X, r.Y, r.X + r.Width, r.Y + r.Height);
         }
 #endif
+
         public static string GetXML(this SvgDocument doc)
         {
             var ret = string.Empty;
@@ -61,7 +63,6 @@ namespace Svg
             }
             finally
             {
-                // Make sure to set back the old culture even an error occurred.
                 Thread.CurrentThread.CurrentCulture = currentCulture;
             }
 

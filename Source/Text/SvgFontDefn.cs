@@ -1,10 +1,8 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -17,15 +15,8 @@ namespace Svg
         private Dictionary<string, SvgGlyph> _glyphs;
         private Dictionary<string, SvgKern> _kerning;
 
-        public float Size
-        {
-            get { return _size; }
-        }
-
-        public float SizeInPoints
-        {
-            get { return _size * 72.0f / _ppi; }
-        }
+        public float Size => _size;
+        public float SizeInPoints => _size * 72.0f / _ppi;
 
         public SvgFontDefn(SvgFont font, float size, float ppi)
         {
@@ -43,88 +34,91 @@ namespace Svg
             return _ppi / 72f * baselineOffset;
         }
 
-        public IList<RectangleF> MeasureCharacters(ISvgRenderer renderer, string text)
+        public IList<SKRect> MeasureCharacters(ISvgRenderer renderer, string text)
         {
-            var result = new List<RectangleF>();
+            var result = new List<SKRect>();
             using (var path = GetPath(renderer, text, result, false)) { }
             return result;
         }
 
-        public SizeF MeasureString(ISvgRenderer renderer, string text)
+        public SKSize MeasureString(ISvgRenderer renderer, string text)
         {
-            var result = new List<RectangleF>();
+            var result = new List<SKRect>();
             using (_ = GetPath(renderer, text, result, true)) { }
 
             float? firstLeft = null;
             float? lastRight = null;
-            foreach (var rect in result.Where(r => r != RectangleF.Empty))
+            foreach (var rect in result.Where(r => !r.IsEmpty))
             {
                 firstLeft ??= rect.Left;
                 lastRight = rect.Right;
             }
 
-            if (firstLeft == null) return SizeF.Empty;
-            return new SizeF(lastRight.Value - firstLeft.Value, Ascent(renderer));
+            if (firstLeft == null) return SKSize.Empty;
+            return new SKSize(lastRight.Value - firstLeft.Value, Ascent(renderer));
         }
 
-        public void AddStringToPath(ISvgRenderer renderer, GraphicsPath path, string text, PointF location)
+        public void AddStringToPath(ISvgRenderer renderer, SKPath path, string text, SKPoint location)
         {
             var textPath = GetPath(renderer, text, null, false);
             if (textPath.PointCount > 0)
             {
-                using (var translate = new Matrix())
-                {
-                    translate.Translate(location.X, location.Y);
-                    textPath.Transform(translate);
-                    path.AddPath(textPath, false);
-                }
+                var translate = SKMatrix.CreateTranslation(location.X, location.Y);
+                textPath.Transform(translate);
+                path.AddPath(textPath);
             }
         }
 
-        private GraphicsPath GetPath(ISvgRenderer renderer, string text, IList<RectangleF> ranges, bool measureSpaces)
+        private SKPath GetPath(ISvgRenderer renderer, string text, IList<SKRect> ranges, bool measureSpaces)
         {
             EnsureDictionaries();
 
-            RectangleF bounds;
+            SKRect bounds;
             SvgGlyph glyph;
             SvgKern kern;
-            GraphicsPath path;
+            SKPath path;
             SvgGlyph prevGlyph = null;
-            Matrix scaleMatrix;
             float xPos = 0;
 
             var ascent = Ascent(renderer);
-
-            var result = new GraphicsPath();
+            var result = new SKPath();
             if (string.IsNullOrEmpty(text)) return result;
 
             for (int i = 0; i < text.Length; i++)
             {
-                if (!_glyphs.TryGetValue(text.Substring(i, 1), out glyph)) glyph = _font.Descendants().OfType<SvgMissingGlyph>().First();
+                var charStr = text.Substring(i, 1);
+                if (!_glyphs.TryGetValue(charStr, out glyph)) 
+                    glyph = _font.Descendants().OfType<SvgMissingGlyph>().FirstOrDefault() ?? new SvgMissingGlyph();
+                
                 if (prevGlyph != null && _kerning.TryGetValue(prevGlyph.GlyphName + "|" + glyph.GlyphName, out kern))
                 {
                     xPos -= kern.Kerning * _emScale;
                 }
-                path = (GraphicsPath)glyph.Path(renderer).Clone();
-                scaleMatrix = new Matrix();
-                scaleMatrix.Scale(_emScale, -1 * _emScale, MatrixOrder.Append);
-                scaleMatrix.Translate(xPos, ascent, MatrixOrder.Append);
-                path.Transform(scaleMatrix);
-                scaleMatrix.Dispose();
-
-                bounds = path.GetBounds();
-                if (ranges != null)
+                
+                path = glyph.Path(renderer);
+                if (path != null)
                 {
-                    if (measureSpaces && bounds == RectangleF.Empty)
+                    using (var clonedPath = new SKPath(path))
                     {
-                        ranges.Add(new RectangleF(xPos, 0, glyph.HorizAdvX * _emScale, ascent));
-                    }
-                    else
-                    {
-                        ranges.Add(bounds);
+                        var scaleMatrix = SKMatrix.CreateScale(_emScale, -1 * _emScale);
+                        scaleMatrix = scaleMatrix.PostConcat(SKMatrix.CreateTranslation(xPos, ascent));
+                        clonedPath.Transform(scaleMatrix);
+
+                        bounds = clonedPath.Bounds;
+                        if (ranges != null)
+                        {
+                            if (measureSpaces && clonedPath.PointCount == 0)
+                            {
+                                ranges.Add(new SKRect(xPos, 0, xPos + glyph.HorizAdvX * _emScale, ascent));
+                            }
+                            else
+                            {
+                                ranges.Add(bounds);
+                            }
+                        }
+                        if (clonedPath.PointCount > 0) result.AddPath(clonedPath);
                     }
                 }
-                if (path.PointCount > 0) result.AddPath(path, false);
 
                 xPos += glyph.HorizAdvX * _emScale;
                 prevGlyph = glyph;
@@ -135,7 +129,7 @@ namespace Svg
 
         private void EnsureDictionaries()
         {
-            if (_glyphs == null) _glyphs = _font.Descendants().OfType<SvgGlyph>().ToDictionary(g => g.Unicode ?? g.GlyphName ?? g.ID);
+            if (_glyphs == null) _glyphs = _font.Descendants().OfType<SvgGlyph>().ToDictionary(g => g.Unicode ?? g.GlyphName ?? g.ID ?? "");
             if (_kerning == null) _kerning = _font.Descendants().OfType<SvgKern>().ToDictionary(k => k.Glyph1 + "|" + k.Glyph2);
         }
 

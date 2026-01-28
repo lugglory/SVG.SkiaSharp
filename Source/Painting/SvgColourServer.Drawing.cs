@@ -1,23 +1,34 @@
 #if !NO_SDC
 using System;
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg
 {
     public partial class SvgColourServer : SvgPaintServer
     {
-        public override Brush GetBrush(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
+        public override SKPaint GetPaint(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
         {
+            var paint = new SKPaint();
+            paint.IsAntialias = true;
+
             // is none?
-            if (this == None) return new SolidBrush(System.Drawing.Color.Transparent);
+            if (this == None)
+            {
+                paint.Color = SKColors.Transparent;
+                return paint;
+            }
 
             // default fill color is black, default stroke color is none
-            if (this == NotSet && forStroke) return new SolidBrush(System.Drawing.Color.Transparent);
+            if (this == NotSet && forStroke)
+            {
+                paint.Color = SKColors.Transparent;
+                return paint;
+            }
 
-            int alpha = (int)Math.Round((opacity * (this.Colour.A / 255.0)) * 255);
-            Color colour = System.Drawing.Color.FromArgb(alpha, this.Colour);
+            float finalOpacity = opacity * (this.Colour.Alpha / 255.0f);
+            paint.Color = this.Colour.WithAlpha((byte)Math.Round(finalOpacity * 255));
 
-            return new SolidBrush(colour);
+            return paint;
         }
     }
 }

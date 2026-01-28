@@ -1,13 +1,13 @@
-﻿#if !NO_SDC
+#if !NO_SDC
 using System;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Linq;
+using SkiaSharp;
 
 namespace Svg
 {
     public abstract partial class SvgGradientServer : SvgPaintServer
     {
-        public override Brush GetBrush(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
+        public override SKPaint GetPaint(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false)
         {
             LoadStops(styleOwner);
 
@@ -15,116 +15,113 @@ namespace Svg
                 return null;
             else if (Stops.Count == 1)
             {
-                // For simplicity.
                 var stopColor = Stops[0].GetColor(styleOwner);
-                var alpha = (int)Math.Round(opacity * (stopColor.A / 255f) * 255);
-                var colour = System.Drawing.Color.FromArgb(alpha, stopColor);
-                return new SolidBrush(colour);
+                var paint = new SKPaint();
+                paint.IsAntialias = true;
+                float finalOpacity = opacity * (stopColor.Alpha / 255.0f);
+                paint.Color = stopColor.WithAlpha((byte)Math.Round(finalOpacity * 255));
+                return paint;
             }
 
-            return CreateBrush(styleOwner, renderer, opacity, forStroke);
+            return CreatePaint(styleOwner, renderer, opacity, forStroke);
         }
 
-        protected abstract Brush CreateBrush(SvgVisualElement renderingElement, ISvgRenderer renderer, float opacity, bool forStroke);
+        protected abstract SKPaint CreatePaint(SvgVisualElement renderingElement, ISvgRenderer renderer, float opacity, bool forStroke);
 
-        protected Matrix EffectiveGradientTransform
+        protected SKMatrix EffectiveGradientTransform
         {
             get
             {
-                var transform = new Matrix();
+                var transform = SKMatrix.CreateIdentity();
 
                 if (GradientTransform != null)
-                    using (var matrix = GradientTransform.GetMatrix())
-                        transform.Multiply(matrix);
+                {
+                    var matrix = GradientTransform.GetMatrix();
+                    transform = transform.PostConcat(matrix);
+                }
 
                 return transform;
             }
         }
 
-        /// <summary>
-        /// Gets a <see cref="ColorBlend"/> representing the <see cref="SvgGradientServer"/>'s gradient stops.
-        /// </summary>
-        /// <param name="renderer">The renderer <see cref="ISvgRenderer"/>.</param>
-        /// <param name="opacity">The opacity of the colour blend.</param>
-        /// <param name="radial">True if it's a radial gradiant.</param>
-        protected ColorBlend GetColorBlend(ISvgRenderer renderer, float opacity, bool radial)
+        protected (SKColor[] Colors, float[] Offsets) GetColorBlend(ISvgRenderer renderer, float opacity, bool radial)
         {
             var colourBlends = Stops.Count;
             var insertStart = false;
             var insertEnd = false;
 
-            //gradient.Transform = renderingElement.Transforms.Matrix;
-
-            //stops should be processed in reverse order if it's a radial gradient
-
-            // May need to increase the number of colour blends because the range *must* be from 0.0 to 1.0.
-            // E.g. 0.5 - 0.8 isn't valid therefore the rest need to be calculated.
-
             // If the first stop doesn't start at zero
             if (Stops[0].Offset.Value > 0f)
             {
                 colourBlends++;
-
-                if (radial)
-                    insertEnd = true;
-                else
-                    insertStart = true;
+                if (radial) insertEnd = true;
+                else insertStart = true;
             }
 
-            // If the last stop doesn't end at 1 a stop
+            // If the last stop doesn't end at 100%
             var lastValue = Stops[Stops.Count - 1].Offset.Value;
-            if (lastValue < 100f || lastValue < 1f)
+            if (lastValue < 100f)
             {
                 colourBlends++;
-                if (radial)
-                    insertStart = true;
-                else
-                    insertEnd = true;
+                if (radial) insertStart = true;
+                else insertEnd = true;
             }
 
-            var blend = new ColorBlend(colourBlends);
+            var colors = new SKColor[colourBlends];
+            var positions = new float[colourBlends];
 
-            // Set positions and colour values
             var actualStops = 0;
-
             for (var i = 0; i < colourBlends; i++)
             {
                 var currentStop = Stops[radial ? Stops.Count - 1 - actualStops : actualStops];
-                var boundWidth = renderer.GetBoundable().Bounds.Width;
+                
+                // Note: ToDeviceValue might depend on bounds. 
+                // SVG gradient offsets are usually 0..1 relative to the object or the coordinate system.
+                // SvgUnit.ToDeviceValue for percentages uses the provided dimension.
+                // For gradients, we usually want the 0..1 value.
+                float offsetValue = currentStop.Offset.Value / 100f; // SvgUnit.Offset is converted to percentage in SvgGradientStop setter.
 
                 var mergedOpacity = opacity * currentStop.StopOpacity;
-                var position =
-                    radial
-                    ? 1 - (currentStop.Offset.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this) / boundWidth)
-                    : (currentStop.Offset.ToDeviceValue(renderer, UnitRenderingType.Horizontal, this) / boundWidth);
+                var position = radial ? 1.0f - offsetValue : offsetValue;
                 position = Math.Min(Math.Max(position, 0f), 1f);
-                var colour = System.Drawing.Color.FromArgb((int)Math.Round(mergedOpacity * 255), currentStop.GetColor(this));
+                
+                var stopColor = currentStop.GetColor(this);
+                var color = stopColor.WithAlpha((byte)Math.Round(mergedOpacity * (stopColor.Alpha / 255.0f) * 255));
 
                 actualStops++;
 
-                // Insert this colour before itself at position 0
                 if (insertStart && i == 0)
                 {
-                    blend.Positions[i] = 0.0f;
-                    blend.Colors[i] = colour;
-
+                    positions[i] = 0.0f;
+                    colors[i] = color;
                     i++;
                 }
 
-                blend.Positions[i] = position;
-                blend.Colors[i] = colour;
+                positions[i] = position;
+                colors[i] = color;
 
-                // Insert this colour after itself at position 0
                 if (insertEnd && i == colourBlends - 2)
                 {
                     i++;
-
-                    blend.Positions[i] = 1.0f;
-                    blend.Colors[i] = colour;
+                    positions[i] = 1.0f;
+                    colors[i] = color;
                 }
             }
 
-            return blend;
+            return (colors, positions);
+        }
+
+        protected SKShaderTileMode GetSKTileMode()
+        {
+            switch (SpreadMethod)
+            {
+                case SvgGradientSpreadMethod.Reflect:
+                    return SKShaderTileMode.Mirror;
+                case SvgGradientSpreadMethod.Repeat:
+                    return SKShaderTileMode.Repeat;
+                default:
+                    return SKShaderTileMode.Clamp;
+            }
         }
 
         protected SvgUnit NormalizeUnit(SvgUnit orig)

@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.ComponentModel;
-using System.Drawing;
+using SkiaSharp;
 using System.Globalization;
 
 namespace Svg
@@ -20,7 +20,6 @@ namespace Svg
                 return SvgPaintServer.NotSet;
 
             var colorValue = value.Trim();
-            // If it's pointing to a paint server
             if (string.IsNullOrEmpty(colorValue))
                 return SvgPaintServer.NotSet;
             else if (colorValue.Equals("none", StringComparison.OrdinalIgnoreCase))
@@ -32,67 +31,50 @@ namespace Svg
             else if (colorValue.StartsWith("url(", StringComparison.OrdinalIgnoreCase))
             {
                 var nextIndex = colorValue.IndexOf(')', 4) + 1;
-
-                // Malformed url, missing closing parenthesis
                 if (nextIndex == 0)
                     return new SvgDeferredPaintServer(colorValue + ")", null);
 
                 var id = colorValue.Substring(0, nextIndex);
-
                 colorValue = colorValue.Substring(nextIndex).Trim();
                 var fallbackServer = string.IsNullOrEmpty(colorValue) ? null : Create(colorValue, document);
 
                 return new SvgDeferredPaintServer(id, fallbackServer);
             }
 
-            // Otherwise try and parse as colour
-            return new SvgColourServer((Color)_colourConverter.ConvertFrom(colorValue));
+            return new SvgColourServer((SKColor)_colourConverter.ConvertFrom(colorValue));
         }
 
         public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
         {
-            if (value is string)
-                return Create((string)value, (SvgDocument)context);
+            if (value is string s)
+                return Create(s, (SvgDocument)context);
 
             return base.ConvertFrom(context, culture, value);
         }
 
         public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
         {
-            if (sourceType == typeof(string))
-            {
-                return true;
-            }
-
-            return base.CanConvertFrom(context, sourceType);
+            return sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
         }
 
         public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
         {
-            if (destinationType == typeof(string))
-            {
-                return true;
-            }
-
-            return base.CanConvertTo(context, destinationType);
+            return destinationType == typeof(string) || base.CanConvertTo(context, destinationType);
         }
 
-        public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture, object value, Type destinationType)
+        public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
         {
             if (destinationType == typeof(string))
             {
-                // check for constant
                 if (value == SvgPaintServer.None || value == SvgPaintServer.Inherit || value == SvgPaintServer.NotSet)
                     return value.ToString();
 
-                var colourServer = value as SvgColourServer;
-                if (colourServer != null)
+                if (value is SvgColourServer colourServer)
                 {
                     return new SvgColourConverter().ConvertTo(colourServer.Colour, typeof(string));
                 }
 
-                var deferred = value as SvgDeferredPaintServer;
-                if (deferred != null)
+                if (value is SvgDeferredPaintServer deferred)
                 {
                     return deferred.ToString();
                 }

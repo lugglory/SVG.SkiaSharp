@@ -1,6 +1,6 @@
 using System;
 using System.ComponentModel;
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg
 {
@@ -39,7 +39,7 @@ namespace Svg
         [TypeConverter(typeof(SvgPaintServerFactory))]
         public SvgPaintServer StopColor
         {
-            get { return GetAttribute<SvgPaintServer>("stop-color", true, new SvgColourServer(System.Drawing.Color.Black)); }
+            get { return GetAttribute<SvgPaintServer>("stop-color", true, new SvgColourServer(SKColors.Black)); }
             set { Attributes["stop-color"] = value; }
         }
 
@@ -66,12 +66,12 @@ namespace Svg
         /// </summary>
         /// <param name="offset">The offset.</param>
         /// <param name="colour">The colour.</param>
-        public SvgGradientStop(SvgUnit offset, Color colour)
+        public SvgGradientStop(SvgUnit offset, SKColor colour)
         {
             this._offset = offset;
         }
 
-        public Color GetColor(SvgElement parent)
+        public SKColor GetColor(SvgElement parent)
         {
             var core = SvgDeferredPaintServer.TryGet<SvgColourServer>(this.StopColor, parent);
             if (core == null) throw new InvalidOperationException("Invalid paint server for gradient stop detected.");

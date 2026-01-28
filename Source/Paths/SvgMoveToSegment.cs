@@ -1,10 +1,10 @@
-using System.Drawing;
+using SkiaSharp;
 
 namespace Svg.Pathing
 {
     public sealed partial class SvgMoveToSegment : SvgPathSegment
     {
-        public SvgMoveToSegment(bool isRelative, PointF moveTo)
+        public SvgMoveToSegment(bool isRelative, SKPoint moveTo)
             : base(isRelative, moveTo)
         {
         }
@@ -15,7 +15,7 @@ namespace Svg.Pathing
         }
 
         [System.Obsolete("Use new constructor.")]
-        public SvgMoveToSegment(PointF moveTo)
+        public SvgMoveToSegment(SKPoint moveTo)
             : this(false, moveTo)
         {
             Start = moveTo;
