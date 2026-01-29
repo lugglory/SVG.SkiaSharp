@@ -1,4 +1,3 @@
-#if !NO_SDC
 using SkiaSharp;
 
 namespace Svg
@@ -24,4 +23,3 @@ namespace Svg
         public abstract SKPaint GetPaint(SvgVisualElement styleOwner, ISvgRenderer renderer, float opacity, bool forStroke = false);
     }
 }
-#endif

@@ -44,14 +44,14 @@
         <DebugType>full</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
-        <NoWarn>$(NoWarn);NETSDK1138</NoWarn>
+        <NoWarn>$(NoWarn);NETSDK1138;CS3001;CS3002;CS3003;CS1591;CS0108</NoWarn>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
         <DebugType>portable</DebugType>
         <Optimize>true</Optimize>
         <DefineConstants>TRACE</DefineConstants>
-        <NoWarn>$(NoWarn);CS1591;CS0618;NETSDK1138</NoWarn>
+        <NoWarn>$(NoWarn);CS1591;CS0618;NETSDK1138;CS3001;CS3002;CS3003;CS0108</NoWarn>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 

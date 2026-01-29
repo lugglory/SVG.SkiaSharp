@@ -16,12 +16,26 @@ namespace Svg
 
         private static int GetWin32SystemDpi()
         {
-            // NOTE: starting with Windows 8.1, the DPI is no longer system-wide but screen-specific
-            IntPtr hDC = GetDC(IntPtr.Zero);
-            const int LOGPIXELSY = 90;
-            int result = GetDeviceCaps(hDC, LOGPIXELSY);
-            ReleaseDC(IntPtr.Zero, hDC);
-            return result;
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return 96;
+            }
+
+            try
+            {
+                // NOTE: starting with Windows 8.1, the DPI is no longer system-wide but screen-specific
+                IntPtr hDC = GetDC(IntPtr.Zero);
+                if (hDC == IntPtr.Zero) return 96;
+
+                const int LOGPIXELSY = 90;
+                int result = GetDeviceCaps(hDC, LOGPIXELSY);
+                ReleaseDC(IntPtr.Zero, hDC);
+                return result;
+            }
+            catch
+            {
+                return 96;
+            }
         }
     }
 }

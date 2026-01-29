@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -1184,8 +1184,6 @@ namespace Svg
         SvgElementCollection Children { get; }
         IList<ISvgNode> Nodes { get; }
 
-#if !NO_SDC
         void Render(ISvgRenderer renderer);
-#endif
     }
 }

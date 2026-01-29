@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System.Linq;
 using SkiaSharp;
 
@@ -30,4 +29,3 @@ namespace Svg.FilterEffects
         }
     }
 }
-#endif

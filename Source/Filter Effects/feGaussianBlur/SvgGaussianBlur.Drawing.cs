@@ -1,4 +1,3 @@
-#if !NO_SDC
 using SkiaSharp;
 
 namespace Svg.FilterEffects
@@ -41,4 +40,3 @@ namespace Svg.FilterEffects
         }
     }
 }
-#endif

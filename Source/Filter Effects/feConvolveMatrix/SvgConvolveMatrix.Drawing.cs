@@ -1,4 +1,3 @@
-﻿#if !NO_SDC
 namespace Svg.FilterEffects
 {
     public partial class SvgConvolveMatrix : SvgFilterPrimitive
@@ -10,4 +9,3 @@ namespace Svg.FilterEffects
         }
     }
 }
-#endif

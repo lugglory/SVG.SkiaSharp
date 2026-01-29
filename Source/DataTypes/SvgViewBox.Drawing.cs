@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using SkiaSharp;
 
@@ -85,4 +84,3 @@ namespace Svg
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,9 +13,9 @@ namespace Svg
         private static readonly string[][] defaultLocalizedFamilyNames = new string[][]
         {
             // Japanese
-            new string[]{ "Meiryo", "ãƒ¡ã‚¤ãƒªã‚ª", },
-            new string[]{ "MS Gothic", "ï¼­ï¼³ ã‚´ã‚·ãƒƒã‚¯", },
-            new string[]{ "MS Mincho", "ï¼­ï¼³ æ˜æœ", },
+            new string[]{ "Meiryo", "?¡ã‚¤?ªã‚ª", },
+            new string[]{ "MS Gothic", "ï¼?¼³ ?´ã‚·?ƒã‚¯", },
+            new string[]{ "MS Mincho", "ï¼?¼³ ?æœ", },
         };
 
         public static List<string[]> LocalizedFamilyNames { get; private set; } = new List<string[]>();
@@ -87,4 +86,3 @@ namespace Svg
         }
     }
 }
-#endif

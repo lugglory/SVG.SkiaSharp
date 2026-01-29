@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.Linq;
 using SkiaSharp;
@@ -131,4 +130,3 @@ namespace Svg
         }
     }
 }
-#endif

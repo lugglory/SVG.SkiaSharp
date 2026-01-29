@@ -22,12 +22,10 @@ namespace Svg
             r.Height = bounds.Height;
         }
 
-#if !NO_SDC
         public static SKRect GetRectangle(this SvgRectangle r)
         {
             return new SKRect(r.X, r.Y, r.X + r.Width, r.Y + r.Height);
         }
-#endif
 
         public static string GetXML(this SvgDocument doc)
         {

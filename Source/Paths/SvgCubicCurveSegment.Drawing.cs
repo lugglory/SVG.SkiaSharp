@@ -1,4 +1,3 @@
-#if !NO_SDC
 using SkiaSharp;
 
 namespace Svg.Pathing
@@ -49,4 +48,3 @@ namespace Svg.Pathing
         }
     }
 }
-#endif

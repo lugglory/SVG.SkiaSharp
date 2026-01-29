@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using SkiaSharp;
@@ -24,7 +23,15 @@ namespace Svg.FilterEffects
         public new SKBitmap this[string key]
         {
             get { return ProcessResult(ProcessKey(key), base.ContainsKey(ProcessKey(key)) ? base[ProcessKey(key)] : null); }
-            set { base[string.IsNullOrEmpty(key) ? BufferKey : key] = value; }
+            set 
+            { 
+                var processedKey = ProcessKey(key);
+                if (base.TryGetValue(processedKey, out var oldBitmap))
+                {
+                    oldBitmap?.Dispose();
+                }
+                base[processedKey] = value; 
+            }
         }
 
         public ImageBuffer(SKRect bounds, float inflate, ISvgRenderer renderer, Action<ISvgRenderer> renderMethod)
@@ -162,4 +169,3 @@ namespace Svg.FilterEffects
         }
     }
 }
-#endif

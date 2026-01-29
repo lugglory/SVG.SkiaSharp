@@ -1,6 +1,4 @@
-#if !NO_SDC
 using SkiaSharp;
-#endif
 
 namespace Svg
 {
@@ -21,8 +19,6 @@ namespace Svg
         float StrokeMiterLimit { get; set; }
         SvgUnitCollection StrokeDashArray { get; set; }
         SvgUnit StrokeDashOffset { get; set; }
-#if !NO_SDC
         SKPath Path(ISvgRenderer renderer);
-#endif
     }
 }

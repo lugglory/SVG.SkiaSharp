@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -536,4 +535,3 @@ namespace Svg
         }
     }
 }
-#endif

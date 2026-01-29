@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.ComponentModel;
 using SkiaSharp;
@@ -21,12 +20,33 @@ namespace Svg
         /// </summary>
         public static bool SystemIsGdiPlusCapable()
         {
-            return true;
+            try
+            {
+                EnsureSystemIsGdiPlusCapable();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static void EnsureSystemIsGdiPlusCapable()
         {
-            // No-op for SkiaSharp
+            if (SkipGdiPlusCapabilityCheck) return;
+
+            try
+            {
+                // Attempt to call a SkiaSharp method to ensure native libraries are loaded
+                using (var bitmap = new SKBitmap(1, 1))
+                {
+                    // No-op
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new SvgGdiPlusCannotBeLoadedException("SkiaSharp native libraries could not be loaded. Please ensure that the appropriate SkiaSharp.NativeAssets.* package is installed.", ex);
+            }
         }
 
         public static SKBitmap OpenAsBitmap(string path)
@@ -142,6 +162,6 @@ namespace Svg
 
             return bitmap;
         }
+        }
     }
-}
-#endif
+    

@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using SkiaSharp;
 using Svg.Transforms;
@@ -215,6 +214,6 @@ namespace Svg
 
             return ret;
         }
+        }
     }
-}
-#endif
+    

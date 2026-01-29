@@ -1,10 +1,9 @@
-﻿using SkiaSharp;
+using SkiaSharp;
 
 namespace Svg
 {
     public interface ISvgBoundable
     {
-#if !NO_SDC
         SKPoint Location
         {
             get;
@@ -19,6 +18,5 @@ namespace Svg
         {
             get;
         }
-#endif
     }
 }

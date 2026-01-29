@@ -1,4 +1,3 @@
-﻿#if !NO_SDC
 using SkiaSharp;
 
 namespace Svg.Transforms
@@ -23,4 +22,3 @@ namespace Svg.Transforms
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using SkiaSharp;
 
@@ -35,4 +34,3 @@ namespace Svg.Pathing
         public abstract SKPoint AddToPath(SKPath graphicsPath, SKPoint start, SvgPathSegmentList parent);
     }
 }
-#endif

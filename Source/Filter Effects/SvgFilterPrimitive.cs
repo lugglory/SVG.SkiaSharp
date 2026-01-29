@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using SkiaSharp;
@@ -61,8 +61,6 @@ namespace Svg.FilterEffects
             get { return (SvgFilter)this.Parent; }
         }
 
-#if !NO_SDC
         public abstract void Process(ImageBuffer buffer);
-#endif
     }
 }

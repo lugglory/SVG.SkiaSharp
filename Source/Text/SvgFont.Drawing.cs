@@ -1,4 +1,3 @@
-﻿#if !NO_SDC
 namespace Svg
 {
     public partial class SvgFont : SvgElement
@@ -8,4 +7,3 @@ namespace Svg
         }
     }
 }
-#endif

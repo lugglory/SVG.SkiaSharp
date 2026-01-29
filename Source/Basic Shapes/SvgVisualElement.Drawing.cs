@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -255,4 +254,3 @@ namespace Svg
         void ISvgClipable.ResetClip(ISvgRenderer renderer) { this.ResetClip(renderer); }
     }
 }
-#endif

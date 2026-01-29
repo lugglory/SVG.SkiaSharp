@@ -1,4 +1,3 @@
-#if !NO_SDC
 using System;
 using SkiaSharp;
 using System.Diagnostics;
@@ -50,4 +49,3 @@ namespace Svg
         }
     }
 }
-#endif
