@@ -11,18 +11,6 @@
         <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-        <PackageReference Include="System.Drawing.Common" Version="5.0.3" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="System.Drawing.Common" Version="5.0.3" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-        <PackageReference Include="System.Drawing.Common" Version="5.0.3" />
-    </ItemGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\..\Source\Svg.csproj" />
         <PackageReference Include="Fizzler" Version="1.3.0" />

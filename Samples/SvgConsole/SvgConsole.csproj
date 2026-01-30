@@ -2,12 +2,12 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFrameworks>net9.0;net8.0;netcoreapp3.1</TargetFrameworks>
         <IsPackable>False</IsPackable>
         <IsTool>True</IsTool>
         <PackAsTool>True</PackAsTool>
         <ToolCommandName>SvgConsole</ToolCommandName>
-        <LangVersion>7.3</LangVersion>
+        <LangVersion>latest</LangVersion>
         <Configurations>Debug;Release</Configurations>
         <PublishTrimmed>False</PublishTrimmed>
         <PublishReadyToRun>False</PublishReadyToRun>

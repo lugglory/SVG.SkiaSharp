@@ -1,10 +1,10 @@
 ![W3C SVG Logo](https://www.w3.org/Icons/SVG/svg-logo-v.png)
 # SVG.NET[![NuGet version](https://badge.fury.io/nu/svg.svg)](https://badge.fury.io/nu/svg) [![Gitter](https://badges.gitter.im/vvvv/SVG.svg)](https://gitter.im/vvvv/SVG?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) ![Testsuite](https://github.com/svg-net/SVG/workflows/Testsuite/badge.svg?branch=master) ![DocBuild](https://github.com/svg-net/SVG/workflows/DocBuild/badge.svg?branch=master)
 
-SVG.NET is a C# library to read, write and render SVG 1.1 images in applications based on the .NET framework.
+SVG.NET is a C# library to read, write and render SVG images in applications based on .NET.
 
-It is compatible with platforms implementing .NET Standard 2.0 and works under Windows, Linux, and macOS
-(the latter two with some limitations with respect to rendering).
+It is fully cross-platform, supporting Windows, Linux, and macOS by using SkiaSharp as its rendering engine.
+It targets .NET 6.0, .NET 8.0, .NET 9.0, .NET Standard 2.0, and .NET Standard 2.1.
 
 SVG.NET is available as a NuGet package and can be referenced by any .NET application supporting .NET Standard 2.0.
 
