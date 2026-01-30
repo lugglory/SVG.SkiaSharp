@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0;netcoreapp3.1;net462</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;netcoreapp3.1</TargetFrameworks>
         <SignAssembly>False</SignAssembly>
         <DelaySign>False</DelaySign>
         <IsPackable>False</IsPackable>
@@ -10,11 +10,6 @@
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
-
-    <ItemGroup Condition=" '$(TargetFramework)' == 'net462'">
-        <Reference Include="System.Net.Http" />
-        <Reference Include="System.IO.Compression" />
-    </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
         <PackageReference Include="System.Drawing.Common" Version="5.0.3" />

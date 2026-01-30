@@ -22,8 +22,8 @@ namespace Svg
             if (transformMatrix.IsIdentity)
                 return true;
 
-            // Apply transformation
-            // Assuming PostConcat behavior similar to GDI+ Append
+// Apply transformation
+            // Assuming PostConcat behavior similar to standard matrix multiplication order
             var current = renderer.Transform;
             var next = current.PostConcat(transformMatrix);
             renderer.Transform = next;

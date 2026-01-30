@@ -11,18 +11,18 @@ namespace Svg
         /// <summary>
         /// Skip check whether the SkiaSharp can be loaded.
         /// </summary>
-        public static bool SkipGdiPlusCapabilityCheck { get; set; }
+        public static bool SkipSkiaSharpCapabilityCheck { get; set; }
 
         internal SvgFontManager FontManager { get; private set; }
 
         /// <summary>
         /// Validate whether the system has SkiaSharp capabilities.
         /// </summary>
-        public static bool SystemIsGdiPlusCapable()
+        public static bool SystemIsSkiaSharpCapable()
         {
             try
             {
-                EnsureSystemIsGdiPlusCapable();
+                EnsureSystemIsSkiaSharpCapable();
                 return true;
             }
             catch
@@ -31,9 +31,9 @@ namespace Svg
             }
         }
 
-        public static void EnsureSystemIsGdiPlusCapable()
+        public static void EnsureSystemIsSkiaSharpCapable()
         {
-            if (SkipGdiPlusCapabilityCheck) return;
+            if (SkipSkiaSharpCapabilityCheck) return;
 
             try
             {
@@ -45,7 +45,7 @@ namespace Svg
             }
             catch (Exception ex)
             {
-                throw new SvgGdiPlusCannotBeLoadedException("SkiaSharp native libraries could not be loaded. Please ensure that the appropriate SkiaSharp.NativeAssets.* package is installed.", ex);
+                throw new SvgSkiaSharpCannotBeLoadedException("SkiaSharp native libraries could not be loaded. Please ensure that the appropriate SkiaSharp.NativeAssets.* package is installed.", ex);
             }
         }
 

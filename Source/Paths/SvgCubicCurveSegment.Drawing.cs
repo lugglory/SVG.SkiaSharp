@@ -12,7 +12,7 @@ namespace Svg.Pathing
                 var prev = parent.IndexOf(this) - 1;
                 if (prev >= 0 && parent[prev] is SvgCubicCurveSegment)
                 {
-                    // For Skia, we can't easily access PathPoints by index like GDI+.
+                    // In SkiaSharp, we can't directly access path points by index as easily as in some other libraries.
                     // We can track it or look at the last verb points.
                     // But usually SVG.NET stores the last segment's control point if needed.
                     // Actually, the easiest is to get the last point of the path.

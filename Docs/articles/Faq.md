@@ -21,7 +21,7 @@ Once I'm done, I render the first SVG to an `Image`. When any of the 'animating'
 
 (from [#219](https://github.com/svg-net/SVG/issues/219), by @jonthysell)
 
-SVG.NET requires the `System.Drawing` namespace, which is not available in UWP. See http://stackoverflow.com/questions/31545389/windows-universal-app-with-system-drawing-and-possible-alternative.
+The current version of SVG.NET uses SkiaSharp for rendering, which is compatible with most modern platforms including UWP (via SkiaSharp's UWP support).
 
 ## How to render an SVG image to a single-color bitmap image?
 
@@ -33,7 +33,7 @@ I was able to find a solution with the following fragment:
 var svgDoc = SvgDocument.Open<SvgDocument>(svgFilePath, null);
 
 // Recursively change all nodes.
-processNodes(svgDoc.Descendants(), new SvgColourServer(Color.DarkGreen));
+processNodes(svgDoc.Descendants(), new SvgColourServer(SKColors.DarkGreen));
 
 var bitmap = svgDoc.Draw();
 ```
@@ -69,13 +69,7 @@ Use `SvgDocument.Draw(int rasterWidth, int rasterHeight)`. If one of the values 
 
 (from [#381](https://github.com/svg-net/SVG/issues/381), by @rangercej, answered by @gvheertum)
 
-I used it in server side code (ASP.NET MVC application and APIs) and never had any problems with it. There are however possible issues regarding the use in services and APIs, for example `System.Drawing` might not always be available in certain situations (if I am not mistaken, some Azure service will not provide `System.Drawing` since it relies on GDI calls) and will also be an issue when using it as "portable" code for example in .NET standard or .NET core (but I believe the library is already working on a migration/compatibility with .NET core/standard).
-
-So issues when using `System.Drawing` are indeed possible when using in a non-interactive scenario, since most non-interactive code will often be functioning as service or API, meaning a lot of synchronous calls are possible, which opens a world of possible problems compared to an interactive app which you often only have a few instances loaded. `System.Drawing` can (and often will) be resource-heavy, so having a lot of synchronous processes will possibly have a huge impact on the performance. So I guess, that is why Microsoft warns about the usage. Rendering a large complex SVG to a big bitmap (eg 5000x5000px) will put a large load on the server, doing this in parallel might cause issues in performance and availability.
-
-`System.Drawing` was initially not really created for service usage, so you *can* use it, but really need to be aware of possible issues. For example, see this article: https://photosauce.net/blog/post/5-reasons-you-should-stop-using-systemdrawing-from-aspnet
-
-I believe there are some parallelization tests in the UnitTest suite, since the SVG component did have some concurrency issues in the past. The parallelization tests show that some parallel work is possible, but upping the limit will show you that resource issues are to be expected under large loads. When failing, `System.Drawing` will often not fail gracefully, but will often crash with some meaningless error (which makes debugging pretty hard sometimes).  
+Yes. Since migration to SkiaSharp, the library no longer relies on Windows-only GDI+ (System.Drawing) calls. SkiaSharp is a cross-platform 2D graphics API for .NET based on Google's Skia Graphics Library. It is highly performant and designed for server-side environments, avoiding the many resource-heavy and thread-safety issues associated with GDI+ in non-interactive scenarios.
 
 ## How to change the SvgUnit DPI?
 
@@ -92,7 +86,7 @@ I believe there are some parallelization tests in the UnitTest suite, since the 
 
 (from [#250](https://github.com/svg-net/SVG/issues/250), by @Radzhab)
 
-If you try to open a very large SVG file in your application, it may crash, because .NET refuses to allocate that much contiguous memory, even if it could do so in theory. This is done to avoid processes to consume too much memory and slow down the system. Nothing we can do about this - you may catch this exception in your application and inform the user, or try to resize your SVG document and retry.
+If you try to open a very large SVG file in your application, it may crash if it exceeds available memory or .NET's object size limits. SkiaSharp handles large bitmaps more efficiently than GDI+, but hardware and OS limits still apply.
 
 ## How to add a custom attribute to an SVG element?
 
@@ -103,49 +97,21 @@ Custom attributes are publicly accessible as a collection, you can add an attrib
     element.CustomAttributes[attributeName] = attributeValue;
 ```
 
-## I'm getting a SvgGdiPlusCannotBeLoadedException if running under Linux or MacOs
+## I'm getting a SvgSkiaSharpCannotBeLoadedException if running under Linux or MacOs
 
-(see [#494](https://github.com/svg-net/SVG/pull/495#issuecomment-505429874), by @ErlendSB)
+This happens if the native SkiaSharp libraries are not found. SkiaSharp requires native assets for each platform. Ensure you have installed the appropriate `SkiaSharp.NativeAssets.*` package for your target platform (e.g., `SkiaSharp.NativeAssets.Linux` or `SkiaSharp.NativeAssets.macOS`).
 
-This happens if `libgdiplus` is not installed under Linux or macOs - `libgdiplus` is needed for the implementation of `System.Drawing.Common`. The system will validate gdi+ capabilities when calling SvgDocument.Open(), if the gdi+ capabilities are not available, you will receive a SvgGdiPlusCannotBeLoadedException. 
+### Validating SkiaSharp capabilities
 
-There is a [packaging project on Github](https://github.com/CoreCompat/libgdiplus-packaging) that helps to install that, here are the installation instructions (copied here for convenience):
-
-Older versions of the package threw a `NullReferenceException` when calling the `SvgDocument.Open` function. The cause of these errors was the same. Newer releases (since version 3.0), will yield a more descriptive exception as described above.
-
-### Using `libgdiplus` on Ubuntu Linux
-
-You can install `libgdiplus` on Ubuntu Linux using the Quamotion PPA. Follow these steps:
-```bash
-sudo add-apt-repository ppa:quamotion/ppa
-sudo apt-get update
-sudo apt-get install -y libgdiplus
-```
-### Using libgdiplus on macOS
-
-On macOS, add a reference to the `runtime.osx.10.10-x64.CoreCompat.System.Drawing` package:
-
-```dotnet add package runtime.osx.10.10-x64.CoreCompat.System.Drawing```
-
-When building from source code you can also uncomment the 
-```xml
-<!-- <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.6.20" />
-  </ItemGroup> -->
-``` 
-block in the `Svg.csproj` file.
-
-### Validating GDI+ capabilities
-
-If you want to make sure the executing system is capable of using the GDI+ features, you can use one of the functions available in the `SvgDocument` class.
+If you want to make sure the executing system is capable of using SkiaSharp features, you can use one of the functions available in the `SvgDocument` class.
 
 If you only want to get a boolean telling whether the capabilities are available, please use the following code:
-```
-bool hasGdiCapabilities = SvgDocument.SystemIsGdiPlusCapable();
+```csharp
+bool hasSkiaCapabilities = SvgDocument.SystemIsSkiaSharpCapable();
 ```
 
 If you want to ensure the capabilities and let an error be thrown when these are not available, please use the following code:
+```csharp
+SvgDocument.EnsureSystemIsSkiaSharpCapable();
 ```
-SvgDocument.EnsureSystemIsGdiPlusCapable();
-```
-This function will throw a `SvgGdiPlusCannotBeLoadedException` if the capabilities are not available.
+This function will throw a `SvgSkiaSharpCannotBeLoadedException` if the native libraries are not available.

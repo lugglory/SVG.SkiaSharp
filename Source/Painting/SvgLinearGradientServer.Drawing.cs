@@ -176,7 +176,7 @@ namespace Svg
             else
             {
                 // Simple intersection logic for Skia types
-                // ... (Logic remains mostly same as GDI+ version but using SKPoint)
+                // ... (Logic remains mostly same as SkiaSharp version but using SKPoint)
                 // To keep it concise, I'll provide a direct translation of the CandidateIntersections logic
                 
                 // Helper to check and add
@@ -226,7 +226,7 @@ namespace Svg
                     // This logic is complex and might be better handled by Skia's SKShaderTileMode.Mirror
                     // but if the code manually expanded it, we might need to preserve it or simplify.
                     // For now, let's simplify to let Skia handle Mirror if possible, 
-                    // but the original code was expanding because of some GDI+ limitation or specific SVG requirement.
+                    // but the original code was expanding because of some legacy limitation or specific SVG requirement.
                     // If we use TileMode.Mirror, we might not need all this math.
                     goto default; 
                 case SvgGradientSpreadMethod.Repeat:

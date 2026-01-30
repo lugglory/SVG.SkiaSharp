@@ -5,18 +5,9 @@
 Depending on the way you want to work with the library you can get the SVG library via NuGet, or roll your own binary from the sources or a personal fork of the sources. 
 
 ### Which version to choose?
-There are 2 major supported versions at the moment: version `2.4.*` and version `3.x`. Version `2.4.*` is a .NET Framework specific version (non .NET Core compatible)
-which can be considered rather stable for use within a .NET project.
-The `3.0` version is a more recent version with added .NET Core compatibility and the possibility to run the package in .NET Core projects under Windows, Linux and macOS.
-The .NET framework compatibility is also maintained, which allows you to use the package in the regular .NET framework (version 3.5 and above).
-The `3.x` versions also contain some bugfixes which are not in the `2.4` version, and if required some of these fixes can be merged into the `2.4` version.
+The current version of SVG.NET is designed for modern .NET environments (targeting .NET 6, 8, 9, and .NET Standard 2.0/2.1). It uses SkiaSharp as the underlying rendering engine, providing full cross-platform compatibility without the need for GDI+ or `libgdiplus`.
 
-If you are going to use the package for the first time, your best bet is to go for the latest `3.x` version - this allows for maximum flexibility and portability.
-If you are already using version `2.4` or use other libraries depending on the `2.4` versions you can also upgrade,
-but there is a possibility that you might encounter compatibility issues/errors.
-The library is unit tested, but it cannot be guaranteed that versions `3.x` and `2.4` behave completely the same.
-If you are working with the .NET framework version you are likely to encounter no big issues, but if you switch to the .NET Core version or switch platforms
-(e.g. to macOS or Linux) you need to test and validate the calling code to be sure everything keeps working as expected.
+If you are starting a new project, you should use the latest version to benefit from modern .NET performance and cross-platform support.
 
 ### Installing via NuGet
 The library is available as a NuGet package in the public NuGet feed (https://www.nuget.org/packages/Svg/).
@@ -49,58 +40,36 @@ dotnet build -c release -f net8.0 Svg.csproj
 ```
 This will put the output into the `bin/Release/net8.0/` folder.
 
-## Special instructions for Mac and Linux
-The library depends on GDI+ (see also [here](http://svg-net.github.io/SVG/articles/Faq.html#im-getting-a-svggdipluscannotbeloadedexception-if-running-under-linux-or-macos) ) for rendering.
-.NET Core does not support GDI+ out of the box for non-Windows systems. For Mac and Linux you need to add a special compatibility package.
-This is not included in the packages by default, since this would break rendering on Windows systems.
+## Cross-Platform Support (Windows, Linux, macOS, etc.)
+Unlike previous versions that relied on GDI+, the current library uses **SkiaSharp**. This means it runs natively on any platform supported by SkiaSharp.
 
-If you distribute your application as platform independent, you might want to add the following instructions (or a reference to this guide)
-in your installation instructions to aid Mac and Linux users that want to utilize your application/library.
+To ensure the library works on your target platform, you must include the appropriate native assets package for SkiaSharp.
 
-### Linux (Ubuntu)
-For Linux, you need to install `libgdiplus` from the `quamotion/ppa` feed on your machine/container:
-```
-sudo add-apt-repository ppa:quamotion/ppa
-sudo apt-get update
-sudo apt-get install -y libgdiplus
-```
+### Native Assets Packages
+Add the relevant NuGet package to your **executable project**:
 
-### macOS
-macOS does not require you to install a system-wide package, but allows you to use a compatibility package that is included in the application.
-This package can be included in the SVG component if you roll your own version from source.
-This can be achieved by altering the `Svg.csproj` file and un-comment the following block of code:
-```
-<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    ...
-    <!-- Mac specific include -->
-    <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="5.8.64" />
-</ItemGroup>
-```
-This will link the `CoreCompat` package in the project.
-If you make a project reference to `Svg.csproj` the consuming application/library will automatically also include the `CoreCompat` package.
+*   **Windows**: `SkiaSharp.NativeAssets.Win32`
+*   **Linux**: `SkiaSharp.NativeAssets.Linux` or `SkiaSharp.NativeAssets.Linux.NoDependencies`
+*   **macOS**: `SkiaSharp.NativeAssets.macOS`
+*   **iOS / Android**: These platforms typically include the necessary assets via their respective SkiaSharp view packages.
 
-If you are not building from source or do not want to make the Svg library dependent on the `CoreCompat` package,
-you can add the reference in the "ultimate" consumer of the package (the application that will be executed),
-by the following command in a terminal/console within the consuming application folder:
-```
-dotnet add package runtime.osx.10.10-x64.CoreCompat.System.Drawing
-```
+For most general-purpose cross-platform applications, you can use the `SkiaSharp` umbrella package, but ensuring the specific `NativeAssets` package is present is recommended for server/CLI environments.
 
 ## Linking the library in your application
 If you have installed or built the library, it's time to add it to your application.
-If you used the NuGet approach, the reference should already be set correctly (please note that for Mac and Linux the compatibility tooling/package needs to be done manually).
+If you used the NuGet approach, the reference should already be set correctly.
 
 If you rolled your own version, you can link the `.csproj` to your own project via your IDE. If you want to do it through `dotnet-cli` you can run:
 ```
-dotnet add reference SVG/sources/Svg.csproj
+dotnet add reference SVG/Source/Svg.csproj
 ```
 (where SVG is the root folder you downloaded the sources to).
-This approach will also take over all references required to the target project (e.g. when you added the `CoreCompat` package for Mac).
+This approach will also take over all references required to the target project.
 This will also compile the Svg sources when you build your own project, which might be useful if you plan to make changes in the Svg project yourself.
 
 If you don't want to reference the project, you can get the `Svg.dll` file from the output folders after you compiled the project with the steps outlined above and reference it.
-The Svg library does not utilize other external references under Windows, and by only using the `Svg.dll` file you will be able to use the library. 
-However, please keep in mind that the Mac and Linux versions require additional tooling/packages.
+The Svg library requires `SkiaSharp.dll` and `ExCSS.dll` to function. 
+Additionally, remember that you need the native SkiaSharp libraries (`libSkiaSharp`) for your target OS.
 
 ## Using the library (examples)
 This part will be extended in the future, for now please refer to the [Q&A](http://svg-net.github.io/SVG/articles/Faq.html) for examples of how to use the library.

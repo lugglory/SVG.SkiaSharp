@@ -12,8 +12,8 @@ namespace Svg.Pathing
                 var prev = parent.IndexOf(this) - 1;
                 if (prev >= 0 && parent[prev] is SvgQuadraticCurveSegment)
                 {
-                    // For Skia, we can get the control point of the last quadratic verb
-                    // but it's easier to just use the logic from GDI+ if we want to be exact,
+// For SkiaSharp, we can get the control point of the last quadratic verb
+                    // but it's easier to follow the original logic if we want to be exact,
                     // OR better: in SVG, T follows Q. The control point is the reflection
                     // of the PREVIOUS Q's control point.
                     
