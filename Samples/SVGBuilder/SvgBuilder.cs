@@ -51,12 +51,8 @@ group.Children.Add(new SvgCircle
 
         private void Button2_Click(object sender, EventArgs e)
         {
-#if NET5_0_OR_GREATER
             if (OperatingSystem.IsWindows())
                 pictureBox1.Image?.Dispose();
-#else
-            pictureBox1.Image?.Dispose();
-#endif
             pictureBox1.Image = null;
             button1.Enabled = false;
 
@@ -119,14 +115,9 @@ class Program
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "mscorlib.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Runtime.dll")),
-#if NETFRAMEWORK
-                MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Drawing.dll")),
-                MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Xml.dll")),
-#else
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Drawing.Primitives.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Private.Xml.dll")),
                 MetadataReference.CreateFromFile(Path.Combine(runtimeDirectoryPath, "System.Xml.ReaderWriter.dll")),
-#endif
                 MetadataReference.CreateFromFile(Path.Combine(sourcePath, "Svg.dll")),
                 MetadataReference.CreateFromFile(typeof(SKBitmap).Assembly.Location),
             };
@@ -161,11 +152,7 @@ class Program
                 try
                 {
                     stream.Seek(0, SeekOrigin.Begin);
-#if NETFRAMEWORK
-                    var assembly = System.Reflection.Assembly.Load(stream.ToArray());
-#else
                     var assembly = assemblyLoadContext.LoadFromStream(stream);
-#endif
 
                     var type = assembly.GetType("Program");
                     var method = type?.GetMethod("CreateDocument");

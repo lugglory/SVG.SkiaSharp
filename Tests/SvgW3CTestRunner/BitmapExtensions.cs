@@ -4,9 +4,7 @@ using System.Drawing;
 
 namespace SvgW3CTestRunner
 {
-#if NET5_0_OR_GREATER
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-#endif
     static class BitmapExtensions
     {
         public static DisposableImageData LockBitsDisposable(this Bitmap bitmap, Rectangle rect, ImageLockMode flags, PixelFormat format)

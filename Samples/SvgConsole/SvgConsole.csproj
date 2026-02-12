@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks>net9.0;net8.0;netcoreapp3.1</TargetFrameworks>
+        <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
         <IsPackable>False</IsPackable>
         <IsTool>True</IsTool>
         <PackAsTool>True</PackAsTool>

@@ -6,9 +6,7 @@ namespace SvgW3CTestRunner
 {
     internal static class BitmapUtils
     {
-#if NET5_0_OR_GREATER
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-#endif
         public static unsafe Bitmap PixelDiff(Bitmap a, Bitmap b)
         {
             var width = Math.Min(a.Width, b.Width);

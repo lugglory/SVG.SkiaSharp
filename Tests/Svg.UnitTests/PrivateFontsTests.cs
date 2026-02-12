@@ -18,12 +18,7 @@ namespace Svg.UnitTests
         private const string PrivateFontSvg = "Issue204_PrivateFont.Text.svg";
         private const string PrivateFont = "Issue204_PrivateFont.BrushScriptMT2.ttf";
 
-#if NETSTANDARD
-        // Private font does not work if .NET Standard.
-        protected override int ExpectedSize { get { return 3000; } } // 3155
-#else
         protected override int ExpectedSize { get { return 3200; } } // 3512
-#endif
 
         [Test]
         public void TestPrivateFontData()
@@ -46,11 +41,6 @@ namespace Svg.UnitTests
             }
             finally
             {
-#if false
-                // Cannot remove font file that added until process is terminated.
-                if (File.Exists(fontFile))
-                    File.Delete(fontFile);
-#endif
             }
         }
     }

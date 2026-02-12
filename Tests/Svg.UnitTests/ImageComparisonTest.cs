@@ -23,7 +23,6 @@ namespace Svg.UnitTests
 
         public TestContext TestContext { get; set; }
 
-#if NETSTANDARD || NETCOREAPP
         /// <summary>
         /// Compares SVG images against reference PNG images from the W3C SVG 1.1 test suite.
         /// This tests 158 out of 179 passing tests - the rest will not pass
@@ -46,35 +45,6 @@ namespace Svg.UnitTests
             var pngPath = Path.Combine(basePath, "png", baseName + ".png");
             CompareSvgImageWithReferenceImpl(baseName, svgPath, pngPath, testSaveLoad);
         }
-#else
-        [Test]
-        [TestCaseSource(typeof(ImageTestDataSource), "PassingTests")]
-        public void CompareSvgImageWithReference(ImageTestDataSource.TestData testData)
-        {
-            // W3C Test Suites use external references to local fonts
-            SvgDocument.ResolveExternalXmlEntites = ExternalType.Local;
-            SvgDocument.ResolveExternalElements = ExternalType.Local;
-
-            var basePath = testData.BasePath;
-            while (!basePath.ToLower().EndsWith("svg"))
-            {
-                basePath = Path.GetDirectoryName(basePath);
-            }
-            // var svgBasePath = Path.Combine(basePath, "svg");
-            var baseName = testData.BaseName;
-            bool testSaveLoad = !baseName.StartsWith("#");
-            if (!testSaveLoad)
-            {
-                baseName = baseName.Substring(1);
-            }
-            var testsRoot = Path.Combine(basePath, "Tests");
-            basePath = TestsUtils.GetPath(testsRoot, baseName);
-            // basePath = Path.Combine(Path.Combine(basePath, "Tests"), "Issues");
-            var svgPath = Path.Combine(Path.Combine(basePath, "svg"), baseName + ".svg");
-            var pngPath = Path.Combine(Path.Combine(basePath, "png"), baseName + ".png");
-            CompareSvgImageWithReferenceImpl(baseName, svgPath, pngPath, testSaveLoad);
-        }
-#endif
 
         private void CompareSvgImageWithReferenceImpl(string baseName, string svgPath, string pngPath, bool testSaveLoad)
         {

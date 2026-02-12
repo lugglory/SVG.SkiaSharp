@@ -10,7 +10,6 @@ using System.Linq;
 using Svg.Css;
 using System.Threading;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using ExCSS;
 
 namespace Svg
@@ -71,24 +70,9 @@ namespace Svg
 
         private static int GetSystemDpi()
         {
-            bool isWindows;
-
-#if NETCOREAPP
-            isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-#else
-            var platform = Environment.OSVersion.Platform;
-            isWindows = platform == PlatformID.Win32NT;
-#endif
-
-            if (isWindows)
-            {
-                return GetWin32SystemDpi();
-            }
-            else
-            {
-                // hack for macOS and Linux
-                return 96;
-            }
+            // SVG spec default is 96 DPI
+            // Users can override with SvgDocument.PointsPerInch setter if needed
+            return 96;
         }
 
         internal Dictionary<string, IEnumerable<SvgFontFace>> FontDefns()

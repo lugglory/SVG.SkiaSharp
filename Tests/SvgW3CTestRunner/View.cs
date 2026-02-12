@@ -175,10 +175,8 @@ namespace SvgW3CTestRunner
 
         private void OnW3CSelectedIndexChanged(object sender, EventArgs e)
         {
-#if NET5_0_OR_GREATER
             if (!OperatingSystem.IsWindows())
                 return;
-#endif
 
             this.ClearPictureBoxes();
 
@@ -303,10 +301,8 @@ namespace SvgW3CTestRunner
 
         private void OnIssuesSelectedIndexChanged(object sender, EventArgs e)
         {
-#if NET5_0_OR_GREATER
             if (!OperatingSystem.IsWindows())
                 return;
-#endif
             this.ClearPictureBoxes();
 
             //render svg
@@ -447,10 +443,8 @@ namespace SvgW3CTestRunner
 
         private void ClearPictureBoxes()
         {
-#if NET5_0_OR_GREATER
             if (!OperatingSystem.IsWindows())
                 return;
-#endif
 
             PictureBox[] pictureBoxes = {
                 picSvg,

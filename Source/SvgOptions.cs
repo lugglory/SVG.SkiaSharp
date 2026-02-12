@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-#if NETCORE
 using System.Diagnostics.CodeAnalysis;
-#endif
 
 namespace Svg
 {
@@ -108,17 +106,10 @@ namespace Svg
             return _properties.Remove(item);
         }
 
-#if NETCORE
         public bool TryGetValue(string key, [MaybeNullWhen(false)] out string value)
         {
             return _properties.TryGetValue(key, out value);
         }
-#else
-        public bool TryGetValue(string key, out string value)
-        {
-            return _properties.TryGetValue(key, out value);
-        }
-#endif
 
         IEnumerator IEnumerable.GetEnumerator()
         {

@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFrameworks>net8.0-windows;net9.0-windows;netcoreapp3.1</TargetFrameworks>
+        <TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
         <UseWindowsForms>true</UseWindowsForms>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -15,13 +15,6 @@
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
         <NoWarn>$(NoWarn);CS1591;CS0618;NETSDK1138</NoWarn>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('netstandard'))">$(DefineConstants);NETSTANDARD</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('netcore'))">$(DefineConstants);NETCORE</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('net8'))">$(DefineConstants);NETNEXT;NET80</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('net9'))">$(DefineConstants);NETNEXT;NET90</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>

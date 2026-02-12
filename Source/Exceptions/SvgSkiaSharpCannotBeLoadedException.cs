@@ -1,7 +1,4 @@
 using System;
-#if !NET8_0_OR_GREATER
-using System.Runtime.Serialization;
-#endif
 
 namespace Svg
 {
@@ -14,10 +11,5 @@ const string skiaErrorMsg = "Cannot initialize SkiaSharp libraries. This is like
         public SvgSkiaSharpCannotBeLoadedException(string message) : base(message) { }
         public SvgSkiaSharpCannotBeLoadedException(Exception inner) : base(skiaErrorMsg, inner) {}
         public SvgSkiaSharpCannotBeLoadedException(string message, Exception inner) : base(message, inner) { }
-
-#if !NET8_0_OR_GREATER
-        protected SvgSkiaSharpCannotBeLoadedException(SerializationInfo info, StreamingContext context)
-            : base(info, context) { }
-#endif
     }
 }

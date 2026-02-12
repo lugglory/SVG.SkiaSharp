@@ -469,10 +469,8 @@ namespace SvgW3CTestRunner
 
         private void RunTest(string fileName, TestItemList testItems, bool log = true)
         {
-#if NET5_0_OR_GREATER
             if (!OperatingSystem.IsWindows())
                 return;
-#endif
 
             TestItem testItem = new TestItem(testItems.Count, fileName);
             testItems.Add(testItem);

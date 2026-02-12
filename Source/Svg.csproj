@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0;netcoreapp3.1;netstandard2.1;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
         <PackageLicenseExpression>MS-PL</PackageLicenseExpression>
         <RootNamespace>Svg</RootNamespace>
         <AssemblyName>Svg</AssemblyName>
@@ -55,22 +55,12 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
-    <!-- Trimming parameters -->
-    <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
+    <!-- Trimming and AOT parameters -->
+    <PropertyGroup>
         <IsTrimmable>true</IsTrimmable>
         <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
         <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
-    </PropertyGroup>
-    <!-- AOT parameters -->
-    <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
         <IsAotCompatible>true</IsAotCompatible>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('netstandard'))">$(DefineConstants);NETSTANDARD</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('netcore'))">$(DefineConstants);NETCORE</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('net8'))">$(DefineConstants);NETCORE;NETNEXT</DefineConstants>
-        <DefineConstants Condition="$(TargetFramework.StartsWith('net9'))">$(DefineConstants);NETCORE;NETNEXT</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
@@ -84,28 +74,8 @@
         <Compile Remove=".\Resources\svg11.dtd" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-        <PackageReference Include="System.Memory" Version="4.5.5" />
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-        <PackageReference Include="SkiaSharp" Version="2.88.8" />
-    </ItemGroup>
-
     <ItemGroup>
+        <PackageReference Include="SkiaSharp" Version="2.88.8" />
         <PackageReference Include="ExCSS" Version="4.2.3" />
         <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
             <PrivateAssets>all</PrivateAssets>
